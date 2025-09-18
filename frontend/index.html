@@ -221,6 +221,39 @@
                 transform: translateX(0);
             }
         }
+        
+        /* Mobile header fixes */
+        @media (max-width: 768px) {
+            .mobile-header {
+                position: sticky;
+                top: 0;
+                z-index: 50;
+                background: white;
+                border-bottom: 1px solid #e5e7eb;
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+                width: 100%;
+                flex-shrink: 0;
+            }
+            
+            /* Ensure header stays above other content */
+            .mobile-header * {
+                position: relative;
+                z-index: 51;
+            }
+            
+            /* Ensure the main chat area header container is properly positioned */
+            .main-chat-area {
+                position: relative;
+                z-index: 1;
+            }
+            
+            /* Make sure header doesn't get hidden by scrolling */
+            .main-chat-area .mobile-header {
+                position: sticky;
+                top: 0;
+                z-index: 100;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50 h-screen overflow-hidden">
@@ -1212,9 +1245,9 @@
                     />
 
                     {/* Main Chat Area */}
-                    <div className="flex-1 flex flex-col lg:ml-0">
+                    <div className="flex-1 flex flex-col lg:ml-0 main-chat-area">
                         {/* Header */}
-                        <div className="bg-white border-b px-3 sm:px-4 py-2 sm:py-3 shadow-sm">
+                        <div className="bg-white border-b px-3 sm:px-4 py-2 sm:py-3 shadow-sm relative mobile-header" style={{ zIndex: 9998 }}>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2 sm:space-x-3">
                                     <div 
@@ -1269,8 +1302,8 @@
                                             console.log('Mobile menu button clicked, current state:', isMobileMenuOpen);
                                             setIsMobileMenuOpen(!isMobileMenuOpen);
                                         }}
-                                        className="lg:hidden p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors z-50 relative"
-                                        style={{ zIndex: 9999 }}
+                                        className="lg:hidden p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors relative"
+                                        style={{ zIndex: 9999, position: 'relative' }}
                                     >
                                         <i className="fas fa-bars"></i>
                                     </button>
