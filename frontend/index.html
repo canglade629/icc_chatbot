@@ -176,6 +176,8 @@
             /* Smooth keyboard transitions */
             .chat-input-container {
                 transition: all 0.3s ease;
+                background-color: var(--bg-primary);
+                padding: 1rem 0;
             }
             
             /* Mobile-specific input styling */
@@ -234,23 +236,25 @@
             --sidebar-hover: #374151;
             --input-bg: #ffffff;
             --input-border: #d1d5db;
+            --input-text: #111827;
             --message-user-bg: #dbeafe;
-            --message-assistant-bg: #f3f4f6;
+            --logo-bg: transparent;
         }
         
         [data-theme="dark"] {
-            --bg-primary: #111827;
-            --bg-secondary: #1f2937;
+            --bg-primary: #374151;
+            --bg-secondary: #4b5563;
             --text-primary: #f9fafb;
             --text-secondary: #d1d5db;
-            --border-color: #374151;
-            --sidebar-bg: #0f172a;
+            --border-color: #6b7280;
+            --sidebar-bg: #1f2937;
             --sidebar-text: #f1f5f9;
-            --sidebar-hover: #1e293b;
-            --input-bg: #374151;
-            --input-border: #4b5563;
-            --message-user-bg: #1e40af;
-            --message-assistant-bg: #374151;
+            --sidebar-hover: #374151;
+            --input-bg: #4b5563;
+            --input-border: #6b7280;
+            --input-text: #f3f4f6;
+            --message-user-bg: #1f2937;
+            --logo-bg: #ffffff;
         }
         
         /* Apply theme variables */
@@ -295,8 +299,46 @@
             background-color: var(--message-user-bg) !important;
         }
         
-        .bg-gray-100 {
-            background-color: var(--message-assistant-bg) !important;
+        
+        /* Input styling with rounded borders */
+        .chat-textarea {
+            background-color: var(--input-bg) !important;
+            border-color: var(--input-border) !important;
+            color: var(--input-text) !important;
+            border-radius: 20px !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chat-textarea:focus {
+            border-color: var(--input-border) !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+        }
+        
+        /* Dark mode shadow enhancement */
+        [data-theme="dark"] .chat-textarea {
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* User message styling with rounded borders */
+        .user-message {
+            background-color: var(--message-user-bg) !important;
+            border-radius: 20px !important;
+            color: var(--text-primary) !important;
+        }
+        
+        
+        /* Logo styling for dark mode */
+        .logo-container {
+            background-color: var(--logo-bg);
+            border-radius: 8px;
+            padding: 4px;
+        }
+        
+        /* Dark mode specific logo styling */
+        [data-theme="dark"] .logo-container {
+            background-color: var(--logo-bg);
+            border-radius: 8px;
+            padding: 4px;
         }
         
         /* Mobile header fixes */
@@ -305,9 +347,7 @@
                 position: sticky;
                 top: 0;
                 z-index: 50;
-                background: white;
-                border-bottom: 1px solid #e5e7eb;
-                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+                background-color: var(--bg-primary);
                 width: 100%;
                 flex-shrink: 0;
             }
@@ -372,8 +412,8 @@
                     return (
                         <div className="flex justify-end mb-6 sm:mb-8">
                             <div className="max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl">
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 inline-block">
-                                    <p className="text-sm sm:text-base lg:text-lg leading-relaxed text-gray-800">{text}</p>
+                                <div className="user-message p-3 sm:p-4 inline-block">
+                                    <p className="text-sm sm:text-base lg:text-lg leading-relaxed">{text}</p>
                                 </div>
                             </div>
                         </div>
@@ -386,7 +426,7 @@
                         <div className="flex justify-start mb-6 sm:mb-8">
                             <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl">
                                 <div 
-                                    className="markdown-content text-sm sm:text-base lg:text-lg leading-relaxed text-gray-800"
+                                    className="markdown-content text-xs sm:text-xs lg:text-sm leading-relaxed"
                                     dangerouslySetInnerHTML={{ __html: html }}
                                 />
                             </div>
@@ -397,7 +437,7 @@
                     return (
                         <div className="flex justify-start mb-6 sm:mb-8">
                             <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl">
-                                <p className="text-sm sm:text-base lg:text-lg leading-relaxed text-gray-800">{text}</p>
+                                <p className="text-xs sm:text-xs lg:text-sm leading-relaxed">{text}</p>
                             </div>
                         </div>
                     );
@@ -458,6 +498,16 @@
                     checkScroll();
                 }
             }, [message]);
+
+            // Auto-focus the textarea when component mounts
+            useEffect(() => {
+                if (textareaRef.current) {
+                    // Small delay to ensure the component is fully rendered
+                    setTimeout(() => {
+                        textareaRef.current.focus();
+                    }, 100);
+                }
+            }, []);
 
             // Mobile detection
             useEffect(() => {
@@ -533,10 +583,10 @@
 
             if (isCentered) {
                 return (
-                    <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+                    <div className="flex-1 flex items-start justify-center p-4 sm:p-6 lg:p-8 pt-24 sm:pt-32 lg:pt-40">
                         <div className="w-full max-w-xs sm:max-w-lg lg:max-w-2xl">
                             <div className="text-center mb-6 sm:mb-8">
-                                <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mx-auto mb-3 sm:mb-4 logo-container">
                                     <img 
                                         src="/static/icc_logo.svg" 
                                         alt="ICC Logo" 
@@ -589,7 +639,7 @@
             }
 
             return (
-                <div className="flex justify-center p-3 sm:p-4 lg:p-6 bg-white border-t">
+                <div className="flex justify-center p-3 sm:p-4 lg:p-6">
                     <div className="w-full max-w-xs sm:max-w-2xl lg:max-w-3xl">
                         <form onSubmit={handleSubmit} className="relative">
                             <div className="relative">
@@ -1160,6 +1210,19 @@
                 scrollToBottom();
             }, [messages]);
 
+            // Auto-focus input when conversation changes
+            useEffect(() => {
+                // Focus the input after a short delay when conversation changes
+                const timer = setTimeout(() => {
+                    const textarea = document.querySelector('.chat-textarea');
+                    if (textarea) {
+                        textarea.focus();
+                    }
+                }, 200);
+                
+                return () => clearTimeout(timer);
+            }, [currentConversationId]);
+
             const sendMessage = async (messageText) => {
                 console.log('Sending message:', messageText);
                 const userMessage = {
@@ -1311,6 +1374,13 @@
                     ));
                 } finally {
                     setIsLoading(false);
+                    // Auto-focus input after sending message
+                    setTimeout(() => {
+                        const textarea = document.querySelector('.chat-textarea');
+                        if (textarea) {
+                            textarea.focus();
+                        }
+                    }, 100);
                 }
             };
 
@@ -1369,11 +1439,11 @@
                     {/* Main Chat Area */}
                     <div className="flex-1 flex flex-col lg:ml-0 main-chat-area">
                         {/* Header */}
-                        <div className="bg-white border-b px-3 sm:px-4 py-2 sm:py-3 shadow-sm relative mobile-header" style={{ zIndex: 9998 }}>
+                        <div className="px-3 sm:px-4 py-2 sm:py-3 relative mobile-header" style={{ zIndex: 9998, backgroundColor: 'var(--bg-primary)' }}>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2 sm:space-x-3">
                                     <div 
-                                        className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center cursor-pointer hover:bg-gray-100 rounded-lg transition-colors"
+                                        className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center cursor-pointer hover:bg-gray-100 rounded-lg transition-colors logo-container"
                                         onClick={() => {
                                             if (conversations.length > 0) {
                                                 selectConversation(conversations[0].id);
@@ -1396,7 +1466,6 @@
                                     </div>
                                     <div className="hidden sm:block">
                                         <h1 className="text-base sm:text-lg font-semibold text-gray-800">ICC Legal Research Assistant</h1>
-                                        <p className="text-xs sm:text-sm text-gray-500">Legal Research Tool</p>
                                     </div>
                                     <div className="sm:hidden">
                                         <h1 className="text-sm font-semibold text-gray-800">ICC Legal Research</h1>
@@ -1408,7 +1477,7 @@
                                         <p className="text-sm font-medium text-gray-800">
                                             {user?.display_name || user?.email}
                                         </p>
-                                        <p className="text-xs text-gray-500">Logged in</p>
+                                        <p className="text-xs text-gray-400">Logged in</p>
                                     </div>
                                     {/* Dark Mode Toggle */}
                                     <button
