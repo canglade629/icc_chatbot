@@ -1,0 +1,42 @@
+# Git attributes for ICC Legal Research Assistant
+
+# Large files - prevent accidental commits
+*.parquet filter=lfs diff=lfs merge=lfs -text
+*.pdf filter=lfs diff=lfs merge=lfs -text
+*.zip filter=lfs diff=lfs merge=lfs -text
+*.tar.gz filter=lfs diff=lfs merge=lfs -text
+*.rar filter=lfs diff=lfs merge=lfs -text
+*.7z filter=lfs diff=lfs merge=lfs -text
+
+# Data files - treat as binary
+data/** filter=lfs diff=lfs merge=lfs -text
+data_processing/output/** filter=lfs diff=lfs merge=lfs -text
+data_processing/save/** filter=lfs diff=lfs merge=lfs -text
+
+# Configuration files
+config/firebase-credentials/*.json filter=lfs diff=lfs merge=lfs -text
+
+# Text files
+*.py text
+*.md text
+*.html text
+*.css text
+*.js text
+*.json text
+*.yml text
+*.yaml text
+*.txt text
+*.sh text
+*.sql text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

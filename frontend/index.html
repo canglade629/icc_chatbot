@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICC Legal Research Assistant</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .typing-dots {
+            display: inline-block;
+        }
+        .typing-dots::after {
+            content: '';
+            animation: typing 1.5s infinite;
+        }
+        @keyframes typing {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+        .scroll-smooth {
+            scroll-behavior: smooth;
+        }
+        
+        /* Markdown styling */
+        .markdown-content h1, .markdown-content h2, .markdown-content h3, .markdown-content h4, .markdown-content h5, .markdown-content h6 {
+            font-weight: bold;
+            margin: 1.5rem 0 0.5rem 0;
+        }
+        
+        .markdown-content h1 { font-size: 1.875rem; }
+        .markdown-content h2 { font-size: 1.5rem; }
+        .markdown-content h3 { font-size: 1.25rem; }
+        .markdown-content h4 { font-size: 1.125rem; }
+        .markdown-content h5 { font-size: 1rem; }
+        .markdown-content h6 { font-size: 0.875rem; }
+        
+        .markdown-content p {
+            margin: 1rem 0;
+            line-height: 1.7;
+        }
+        
+        .markdown-content ul, .markdown-content ol {
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+        }
+        
+        .markdown-content li {
+            margin: 0.5rem 0;
+        }
+        
+        .markdown-content code {
+            background-color: #f3f4f6;
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+        
+        .markdown-content pre {
+            background-color: #f3f4f6;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        
+        .markdown-content pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        
+        .markdown-content blockquote {
+            border-left: 4px solid #e5e7eb;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            font-style: italic;
+            color: #6b7280;
+        }
+        
+        .markdown-content a {
+            color: #3b82f6;
+            text-decoration: underline;
+        }
+        
+        .markdown-content a:hover {
+            color: #1d4ed8;
+        }
+        
+        .markdown-content strong {
+            font-weight: bold;
+        }
+        
+        .markdown-content em {
+            font-style: italic;
+        }
+        
+        /* Custom scrollbar for textarea - only show when needed */
+        .chat-textarea::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .chat-textarea::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .chat-textarea::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Hide scrollbar when not needed */
+        .chat-textarea {
+            scrollbar-width: thin;
+            scrollbar-color: #c1c1c1 #f1f1f1;
+        }
+        
+        /* Hide scrollbar when no text or text fits */
+        .chat-textarea:not(.has-scroll)::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .chat-textarea:not(.has-scroll) {
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 h-screen overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const ChatMessage = ({ message, isUser, isLoading = false }) => {
+            const renderMarkdown = (text) => {
+                if (isUser) {
+                    return (
+                        <div className="flex justify-end mb-6 sm:mb-8">
+                            <div className="max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl">
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 inline-block">
+                                    <p className="text-sm sm:text-base lg:text-lg leading-relaxed text-gray-800">{text}</p>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+                
+                try {
+                    const html = marked.parse(text);
+                    return (
+                        <div 
+                            className="markdown-content text-sm sm:text-base lg:text-lg leading-relaxed text-gray-800"
+                            dangerouslySetInnerHTML={{ __html: html }}
+                        />
+                    );
+                } catch (error) {
+                    console.error('Markdown parsing error:', error);
+                    return <p className="text-sm sm:text-base lg:text-lg leading-relaxed text-gray-800">{text}</p>;
+                }
+            };
+
+            return (
+                <div className="flex justify-center mb-6 sm:mb-8">
+                    <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl w-full px-3 sm:px-4 lg:px-6">
+                        {isLoading ? (
+                            <div className="flex items-center space-x-1 text-sm sm:text-base lg:text-lg text-gray-600">
+                                <span>ICC Legal Research Assistant is typing</span>
+                                <div className="typing-dots"></div>
+                            </div>
+                        ) : (
+                            renderMarkdown(message)
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const ChatInput = ({ onSendMessage, isLoading, isCentered = false }) => {
+            const [message, setMessage] = useState('');
+            const [hasScroll, setHasScroll] = useState(false);
+            const textareaRef = useRef(null);
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (message.trim() && !isLoading) {
+                    onSendMessage(message.trim());
+                    setMessage('');
+                }
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                }
+            };
+
+            const checkScroll = () => {
+                if (textareaRef.current) {
+                    const hasScrollbar = textareaRef.current.scrollHeight > textareaRef.current.clientHeight;
+                    setHasScroll(hasScrollbar);
+                }
+            };
+
+            useEffect(() => {
+                if (textareaRef.current) {
+                    textareaRef.current.style.height = 'auto';
+                    textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+                    checkScroll();
+                }
+            }, [message]);
+
+            useEffect(() => {
+                const textarea = textareaRef.current;
+                if (textarea) {
+                    textarea.addEventListener('input', checkScroll);
+                    textarea.addEventListener('resize', checkScroll);
+                    return () => {
+                        textarea.removeEventListener('input', checkScroll);
+                        textarea.removeEventListener('resize', checkScroll);
+                    };
+                }
+            }, []);
+
+            if (isCentered) {
+                return (
+                    <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+                        <div className="w-full max-w-xs sm:max-w-lg lg:max-w-2xl">
+                            <div className="text-center mb-6 sm:mb-8">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                                    <img 
+                                        src="/static/icc_logo.svg" 
+                                        alt="ICC Logo" 
+                                        className="w-full h-full object-contain"
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.nextSibling.style.display = 'flex';
+                                        }}
+                                    />
+                                    <div className="w-full h-full bg-blue-500 rounded-full flex items-center justify-center" style={{display: 'none'}}>
+                                        <i className="fas fa-robot text-white text-lg sm:text-2xl"></i>
+                                    </div>
+                                </div>
+                                <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-800 mb-2">ICC Legal Research Assistant</h1>
+                                <p className="text-sm sm:text-base text-gray-600">Search past judgments and explore international humanitarian law texts</p>
+                            </div>
+                            <form onSubmit={handleSubmit} className="relative">
+                                <div className="relative">
+                                    <textarea
+                                        ref={textareaRef}
+                                        value={message}
+                                        onChange={(e) => setMessage(e.target.value)}
+                                        onKeyPress={handleKeyPress}
+                                        placeholder="Search past judgments or ask about IHL provisions..."
+                                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${hasScroll ? 'pr-12 sm:pr-14' : 'pr-12 sm:pr-14'} border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base overflow-y-auto chat-textarea ${hasScroll ? 'has-scroll' : ''}`}
+                                        rows="1"
+                                        disabled={isLoading}
+                                        style={{ maxHeight: hasScroll ? '300px' : '120px', scrollbarWidth: 'thin' }}
+                                    />
+                                    {message.trim() && (
+                                        <button
+                                            type="submit"
+                                            disabled={isLoading}
+                                            className={`absolute ${hasScroll ? 'right-2 sm:right-3 bottom-2 sm:bottom-3' : 'right-2 sm:right-3 top-1/2 transform -translate-y-1/2'} w-8 h-8 sm:w-9 sm:h-9 bg-gray-700 hover:bg-gray-800 text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                                        >
+                                            <i className="fas fa-arrow-up text-xs sm:text-sm"></i>
+                                        </button>
+                                    )}
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex justify-center p-3 sm:p-4 lg:p-6 bg-white border-t">
+                    <div className="w-full max-w-xs sm:max-w-2xl lg:max-w-3xl">
+                        <form onSubmit={handleSubmit} className="relative">
+                            <div className="relative">
+                                <textarea
+                                    ref={textareaRef}
+                                    value={message}
+                                    onChange={(e) => setMessage(e.target.value)}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder="Search past judgments or ask about IHL provisions..."
+                                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${hasScroll ? 'pr-12 sm:pr-14' : 'pr-12 sm:pr-14'} border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base overflow-y-auto chat-textarea ${hasScroll ? 'has-scroll' : ''}`}
+                                    rows="1"
+                                    disabled={isLoading}
+                                    style={{ maxHeight: hasScroll ? '300px' : '120px', scrollbarWidth: 'thin' }}
+                                />
+                                {message.trim() && (
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className={`absolute ${hasScroll ? 'right-2 sm:right-3 bottom-2 sm:bottom-3' : 'right-2 sm:right-3 top-1/2 transform -translate-y-1/2'} w-8 h-8 sm:w-9 sm:h-9 bg-gray-700 hover:bg-gray-800 text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    >
+                                        <i className="fas fa-arrow-up text-xs sm:text-sm"></i>
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        const Sidebar = ({ conversations, currentConversationId, onSelectConversation, onNewConversation, isMobileMenuOpen, setIsMobileMenuOpen, user, onLogout, formatTimestamp }) => {
+            const [isCollapsed, setIsCollapsed] = useState(false);
+            const [showUserMenu, setShowUserMenu] = useState(false);
+
+            return (
+                <>
+                    {/* Mobile Overlay */}
+                    {isMobileMenuOpen && (
+                        <div 
+                            className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        ></div>
+                    )}
+
+                    {/* Sidebar */}
+                    <div className={`bg-gray-900 text-white transition-all duration-300 flex flex-col h-screen fixed lg:relative z-50 ${
+                        isCollapsed ? 'w-16' : 'w-64'
+                    } ${
+                        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                    }`}>
+                        {/* Header */}
+                        <div className="p-4 border-b border-gray-700">
+                            <div className="flex items-center justify-between">
+                                {!isCollapsed && (
+                                    <button
+                                        onClick={onNewConversation}
+                                        className="flex items-center space-x-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                                    >
+                                        <i className="fas fa-plus"></i>
+                                        <span className="hidden sm:inline">New chat</span>
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setIsCollapsed(!isCollapsed)}
+                                    className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                                >
+                                    <i className={`fas ${isCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'}`}></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Conversations List */}
+                        <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                            {conversations.map((conversation) => (
+                                <div
+                                    key={conversation.id}
+                                    onClick={() => {
+                                        onSelectConversation(conversation.id);
+                                        setIsMobileMenuOpen(false);
+                                    }}
+                                    className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                                        conversation.id === currentConversationId
+                                            ? 'bg-gray-700'
+                                            : 'hover:bg-gray-800'
+                                    }`}
+                                >
+                                    {isCollapsed ? (
+                                        <div className="flex justify-center">
+                                            <i className="fas fa-comment text-gray-400"></i>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <p className="text-sm font-medium truncate">
+                                                    {conversation.title || 'New Conversation'}
+                                                </p>
+                                                <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
+                                                    {formatTimestamp(conversation.updated_at)}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-gray-400 truncate">
+                                                {conversation.lastMessage || 'No messages yet'}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-4 border-t border-gray-700 relative">
+                            {!isCollapsed && (
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <i className="fas fa-user text-white text-sm"></i>
+                                    </div>
+                                    <div className="hidden sm:block flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-white truncate">
+                                            {user?.display_name || user?.email || 'User'}
+                                        </p>
+                                        <p className="text-xs text-gray-400 truncate">
+                                            {user?.email || 'ICC Legal Research'}
+                                        </p>
+                                    </div>
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setShowUserMenu(!showUserMenu)}
+                                            className="p-1 text-gray-400 hover:text-white transition-colors"
+                                            title="User Menu"
+                                        >
+                                            <i className="fas fa-ellipsis-v text-xs"></i>
+                                        </button>
+                                        
+                                        {/* User Dropdown Menu */}
+                                        {showUserMenu && (
+                                            <div className="absolute bottom-full right-0 mb-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-700 z-50">
+                                                <div className="p-3 border-b border-gray-700">
+                                                    <p className="text-sm font-medium text-white truncate">
+                                                        {user?.display_name || 'User'}
+                                                    </p>
+                                                    <p className="text-xs text-gray-400 truncate">
+                                                        {user?.email}
+                                                    </p>
+                                                </div>
+                                                <div className="py-1">
+                                                    <button
+                                                        onClick={() => {
+                                                            setShowUserMenu(false);
+                                                            // Add profile edit functionality here
+                                                        }}
+                                                        className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                                                    >
+                                                        <i className="fas fa-user-edit mr-2"></i>
+                                                        Edit Profile
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setShowUserMenu(false);
+                                                            // Add settings functionality here
+                                                        }}
+                                                        className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                                                    >
+                                                        <i className="fas fa-cog mr-2"></i>
+                                                        Settings
+                                                    </button>
+                                                    <div className="border-t border-gray-700 my-1"></div>
+                                                    <button
+                                                        onClick={() => {
+                                                            setShowUserMenu(false);
+                                                            onLogout();
+                                                        }}
+                                                        className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300 transition-colors"
+                                                    >
+                                                        <i className="fas fa-sign-out-alt mr-2"></i>
+                                                        Logout
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            {isCollapsed && (
+                                <div className="flex justify-center">
+                                    <button
+                                        onClick={onLogout}
+                                        className="p-2 text-gray-400 hover:text-white transition-colors"
+                                        title="Logout"
+                                    >
+                                        <i className="fas fa-sign-out-alt"></i>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </>
+            );
+        };
+
+
+        const ChatApp = () => {
+            const [conversations, setConversations] = useState([]);
+            const [currentConversationId, setCurrentConversationId] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
+            const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+            const [user, setUser] = useState(null);
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [authLoading, setAuthLoading] = useState(true);
+            const [conversationsLoading, setConversationsLoading] = useState(false);
+            const messagesEndRef = useRef(null);
+
+            const currentConversation = conversations.find(c => c.id === currentConversationId);
+            const messages = currentConversation?.messages || [];
+
+            // Utility functions
+            const formatTimestamp = (timestamp) => {
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diffInHours = (now - date) / (1000 * 60 * 60);
+                
+                if (diffInHours < 24) {
+                    // Show time if within 24 hours
+                    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                } else if (diffInHours < 24 * 7) {
+                    // Show day of week if within a week
+                    return date.toLocaleDateString([], { weekday: 'short' });
+                } else {
+                    // Show date if older than a week
+                    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                }
+            };
+
+            // Authentication functions
+            const checkAuth = async () => {
+                const token = localStorage.getItem('access_token');
+                const userData = localStorage.getItem('user');
+                
+                if (token && userData) {
+                    try {
+                        // Verify token with backend
+                        const response = await fetch('/auth/me', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const user = await response.json();
+                            setUser(user);
+                            setIsAuthenticated(true);
+                        } else {
+                            // Token invalid, try refresh
+                            await refreshToken();
+                        }
+                    } catch (error) {
+                        console.error('Auth check failed:', error);
+                        await refreshToken();
+                    }
+                }
+                setAuthLoading(false);
+            };
+
+            const refreshToken = async () => {
+                const refreshToken = localStorage.getItem('refresh_token');
+                if (!refreshToken) {
+                    setAuthLoading(false);
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/auth/refresh', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(refreshToken),
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        localStorage.setItem('access_token', data.access_token);
+                        localStorage.setItem('refresh_token', data.refresh_token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        setUser(data.user);
+                        setIsAuthenticated(true);
+                    } else {
+                        // Refresh failed, redirect to login
+                        localStorage.removeItem('access_token');
+                        localStorage.removeItem('refresh_token');
+                        localStorage.removeItem('user');
+                        setUser(null);
+                        setIsAuthenticated(false);
+                    }
+                } catch (error) {
+                    console.error('Token refresh failed:', error);
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
+                    localStorage.removeItem('user');
+                    setUser(null);
+                    setIsAuthenticated(false);
+                }
+            };
+
+            const logout = () => {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
+                localStorage.removeItem('user');
+                setUser(null);
+                setIsAuthenticated(false);
+                setConversations([]);
+                setCurrentConversationId(null);
+            };
+
+            // Conversation management functions
+            const loadConversations = async () => {
+                if (!isAuthenticated) return;
+                
+                setConversationsLoading(true);
+                try {
+                    const token = localStorage.getItem('access_token');
+                    const response = await fetch('/conversations', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const conversationsData = await response.json();
+                        
+                        // Check if there are any empty conversations and clean them up
+                        const emptyConversations = conversationsData.filter(conv => conv.messages.length === 0);
+                        if (emptyConversations.length > 0) {
+                            try {
+                                await fetch('/conversations/cleanup', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`
+                                    }
+                                });
+                            } catch (error) {
+                                console.error('Error cleaning up empty conversations:', error);
+                            }
+                        }
+                        
+                        // Filter out empty conversations from display
+                        const nonEmptyConversations = conversationsData.filter(conv => conv.messages.length > 0);
+                        
+                        const formattedConversations = nonEmptyConversations.map(conv => ({
+                            id: conv.id,
+                            title: conv.title,
+                            lastMessage: conv.messages.length > 0 ? conv.messages[conv.messages.length - 1].text : "",
+                            messages: conv.messages.map(msg => ({
+                                id: msg.id || Date.now() + Math.random(),
+                                text: msg.text,
+                                isUser: msg.isUser
+                            })),
+                            updated_at: conv.updated_at,
+                            created_at: conv.created_at
+                        }));
+                        
+                        // Sort conversations by updated_at (latest first)
+                        formattedConversations.sort((a, b) => {
+                            const dateA = new Date(a.updated_at);
+                            const dateB = new Date(b.updated_at);
+                            return dateB - dateA;
+                        });
+                        setConversations(formattedConversations);
+                        
+                        // If no conversations, create a new one
+                        if (formattedConversations.length === 0) {
+                            await createNewConversation();
+                        } else {
+                            // Set the first conversation as current
+                            setCurrentConversationId(formattedConversations[0].id);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading conversations:', error);
+                    // Create a new conversation if loading fails
+                    await createNewConversation();
+                } finally {
+                    setConversationsLoading(false);
+                }
+            };
+
+            const createNewConversation = async () => {
+                try {
+                    const token = localStorage.getItem('access_token');
+                    const response = await fetch('/conversations', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ title: "New Conversation" })
+                    });
+
+                    if (response.ok) {
+                        const newConv = await response.json();
+                        const formattedConv = {
+                            id: newConv.id,
+                            title: newConv.title,
+                            lastMessage: "",
+                            messages: []
+                        };
+                        setConversations(prev => [formattedConv, ...prev]);
+                        setCurrentConversationId(newConv.id);
+                    }
+                } catch (error) {
+                    console.error('Error creating conversation:', error);
+                }
+            };
+
+            const saveConversation = async (conversationId, messages) => {
+                // Only save conversations that have messages
+                if (messages.length === 0) {
+                    return;
+                }
+                
+                try {
+                    const token = localStorage.getItem('access_token');
+                    await fetch(`/conversations/${conversationId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ messages: messages })
+                    });
+                } catch (error) {
+                    console.error('Error saving conversation:', error);
+                }
+            };
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            };
+
+            useEffect(() => {
+                checkAuth();
+            }, []);
+
+            useEffect(() => {
+                if (isAuthenticated) {
+                    loadConversations();
+                }
+            }, [isAuthenticated]);
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [messages]);
+
+            const sendMessage = async (messageText) => {
+                const userMessage = {
+                    id: Date.now(),
+                    text: messageText,
+                    isUser: true
+                };
+
+                // Update current conversation
+                const updatedConversations = conversations.map(conv =>
+                    conv.id === currentConversationId
+                        ? { ...conv, messages: [...conv.messages, userMessage], lastMessage: messageText }
+                        : conv
+                );
+                setConversations(updatedConversations);
+
+                // Check if this is the first message in the conversation and update title
+                const currentConv = updatedConversations.find(c => c.id === currentConversationId);
+                if (currentConv && currentConv.messages.length === 1) {
+                    // This is the first message, update the conversation title
+                    const firstWords = messageText.split(' ').slice(0, 4).join(' ');
+                    const newTitle = firstWords.length > 0 ? firstWords : "New Conversation";
+                    
+                    // Update the conversation title locally
+                    const updatedConv = { ...currentConv, title: newTitle };
+                    const updatedConversationsWithTitle = conversations.map(conv =>
+                        conv.id === currentConversationId ? updatedConv : conv
+                    );
+                    setConversations(updatedConversationsWithTitle);
+                    
+                    // Update title in Firestore
+                    try {
+                        const token = localStorage.getItem('access_token');
+                        await fetch(`/conversations/${currentConversationId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ title: newTitle })
+                        });
+                    } catch (error) {
+                        console.error('Error updating conversation title:', error);
+                    }
+                }
+
+                // Save to Firestore
+                if (currentConv) {
+                    await saveConversation(currentConversationId, currentConv.messages);
+                }
+
+                setIsLoading(true);
+
+                try {
+                    const token = localStorage.getItem('access_token');
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ message: messageText }),
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 401) {
+                            // Token expired, try refresh
+                            await refreshToken();
+                            // Retry with new token
+                            const newToken = localStorage.getItem('access_token');
+                            const retryResponse = await fetch('/chat', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${newToken}`
+                                },
+                                body: JSON.stringify({ message: messageText }),
+                            });
+                            
+                            if (!retryResponse.ok) {
+                                throw new Error('Authentication failed');
+                            }
+                            
+                            const data = await retryResponse.json();
+                            const assistantMessage = {
+                                id: Date.now() + 1,
+                                text: data.response,
+                                isUser: false
+                            };
+                            
+                            setConversations(prev => prev.map(conv => 
+                                conv.id === currentConversationId 
+                                    ? { ...conv, messages: [...conv.messages, assistantMessage] }
+                                    : conv
+                            ));
+                        } else {
+                            throw new Error('Failed to send message');
+                        }
+                    } else {
+                        const data = await response.json();
+                        
+                        const assistantMessage = {
+                            id: Date.now() + 1,
+                            text: data.response,
+                            isUser: false
+                        };
+
+                        // Update current conversation with assistant response
+                        const updatedConversations = conversations.map(conv =>
+                            conv.id === currentConversationId
+                                ? { ...conv, messages: [...conv.messages, assistantMessage] }
+                                : conv
+                        );
+                        setConversations(updatedConversations);
+
+                        // Save to Firestore
+                        const currentConv = updatedConversations.find(c => c.id === currentConversationId);
+                        if (currentConv) {
+                            await saveConversation(currentConversationId, currentConv.messages);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    const errorMessage = {
+                        id: Date.now() + 1,
+                        text: "Sorry, I encountered an error. Please try again.",
+                        isUser: false
+                    };
+                    
+                    setConversations(prev => prev.map(conv => 
+                        conv.id === currentConversationId 
+                            ? { ...conv, messages: [...conv.messages, errorMessage] }
+                            : conv
+                    ));
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const selectConversation = (conversationId) => {
+                setCurrentConversationId(conversationId);
+            };
+
+            const newConversation = async () => {
+                await createNewConversation();
+            };
+
+            const hasMessages = messages.length > 0;
+
+            // Show loading screen while checking authentication
+            if (authLoading) {
+                return (
+                    <div className="h-screen flex items-center justify-center bg-gray-50">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                            <p className="text-gray-600">Loading...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Show login screen if not authenticated
+            if (!isAuthenticated) {
+                return (
+                    <div className="h-screen flex items-center justify-center bg-gray-50">
+                        <div className="text-center max-w-md mx-auto p-6">
+                            <div className="w-16 h-16 mx-auto mb-4 bg-blue-500 rounded-full flex items-center justify-center">
+                                <img 
+                                    src="/static/icc_logo.svg" 
+                                    alt="ICC Logo" 
+                                    className="w-10 h-10 object-contain"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.nextSibling.style.display = 'flex';
+                                    }}
+                                />
+                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center" style={{display: 'none'}}>
+                                    <i className="fas fa-gavel text-blue-500 text-lg"></i>
+                                </div>
+                            </div>
+                            <h1 className="text-2xl font-bold text-gray-800 mb-2">ICC Legal Research Assistant</h1>
+                            <p className="text-gray-600 mb-6">Please sign in to access the legal research tool</p>
+                            <div className="space-y-3">
+                                <a
+                                    href="/auth.html"
+                                    className="block w-full bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors"
+                                >
+                                    Sign In / Sign Up
+                                </a>
+                                <button
+                                    onClick={() => window.location.reload()}
+                                    className="block w-full bg-gray-200 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                                >
+                                    Retry
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="h-screen flex bg-gray-50">
+                    {/* Sidebar */}
+                    <Sidebar
+                        conversations={conversations}
+                        currentConversationId={currentConversationId}
+                        onSelectConversation={selectConversation}
+                        onNewConversation={newConversation}
+                        isMobileMenuOpen={isMobileMenuOpen}
+                        setIsMobileMenuOpen={setIsMobileMenuOpen}
+                        user={user}
+                        onLogout={logout}
+                        formatTimestamp={formatTimestamp}
+                    />
+
+                    {/* Main Chat Area */}
+                    <div className="flex-1 flex flex-col lg:ml-0">
+                        {/* Header */}
+                        <div className="bg-white border-b px-3 sm:px-4 py-2 sm:py-3 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2 sm:space-x-3">
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
+                                        <img 
+                                            src="/static/icc_logo.svg" 
+                                            alt="ICC Logo" 
+                                            className="w-full h-full object-contain"
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                e.target.nextSibling.style.display = 'flex';
+                                            }}
+                                        />
+                                        <div className="w-full h-full bg-blue-500 rounded-full flex items-center justify-center" style={{display: 'none'}}>
+                                            <i className="fas fa-robot text-white text-xs sm:text-sm"></i>
+                                        </div>
+                                    </div>
+                                    <div className="hidden sm:block">
+                                        <h1 className="text-base sm:text-lg font-semibold text-gray-800">ICC Legal Research Assistant</h1>
+                                        <p className="text-xs sm:text-sm text-gray-500">Legal Research Tool</p>
+                                    </div>
+                                    <div className="sm:hidden">
+                                        <h1 className="text-sm font-semibold text-gray-800">ICC Legal Research</h1>
+                                    </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    {/* User Info */}
+                                    <div className="hidden sm:block text-right">
+                                        <p className="text-sm font-medium text-gray-800">
+                                            {user?.display_name || user?.email}
+                                        </p>
+                                        <p className="text-xs text-gray-500">Logged in</p>
+                                    </div>
+                                    {/* Logout Button */}
+                                    <button
+                                        onClick={logout}
+                                        className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                                        title="Logout"
+                                    >
+                                        <i className="fas fa-sign-out-alt"></i>
+                                    </button>
+                                    {/* Mobile Menu Button */}
+                                    <button
+                                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                                        className="lg:hidden p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                                    >
+                                        <i className="fas fa-bars"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Chat Content */}
+                        {hasMessages ? (
+                            <>
+                                {/* Messages Container */}
+                                <div className="flex-1 overflow-y-auto py-4 sm:py-6 lg:py-8">
+                                    <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl mx-auto px-3 sm:px-4">
+                                        {messages.map((message) => (
+                                            <ChatMessage
+                                                key={message.id}
+                                                message={message.text}
+                                                isUser={message.isUser}
+                                            />
+                                        ))}
+                                        {isLoading && (
+                                            <ChatMessage
+                                                message=""
+                                                isUser={false}
+                                                isLoading={true}
+                                            />
+                                        )}
+                                        <div ref={messagesEndRef} />
+                                    </div>
+                                </div>
+
+                                {/* Input */}
+                                <ChatInput onSendMessage={sendMessage} isLoading={isLoading} />
+                            </>
+                        ) : (
+                            /* Centered Input for New Conversations */
+                            <ChatInput onSendMessage={sendMessage} isLoading={isLoading} isCentered={true} />
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<ChatApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
