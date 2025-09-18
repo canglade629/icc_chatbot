@@ -159,29 +159,41 @@
                 try {
                     const html = marked.parse(text);
                     return (
-                        <div 
-                            className="markdown-content text-sm sm:text-base lg:text-lg leading-relaxed text-gray-800"
-                            dangerouslySetInnerHTML={{ __html: html }}
-                        />
+                        <div className="flex justify-start mb-6 sm:mb-8">
+                            <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl">
+                                <div 
+                                    className="markdown-content text-sm sm:text-base lg:text-lg leading-relaxed text-gray-800"
+                                    dangerouslySetInnerHTML={{ __html: html }}
+                                />
+                            </div>
+                        </div>
                     );
                 } catch (error) {
                     console.error('Markdown parsing error:', error);
-                    return <p className="text-sm sm:text-base lg:text-lg leading-relaxed text-gray-800">{text}</p>;
+                    return (
+                        <div className="flex justify-start mb-6 sm:mb-8">
+                            <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl">
+                                <p className="text-sm sm:text-base lg:text-lg leading-relaxed text-gray-800">{text}</p>
+                            </div>
+                        </div>
+                    );
                 }
             };
 
             return (
-                <div className="flex justify-center mb-6 sm:mb-8">
-                    <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl w-full px-3 sm:px-4 lg:px-6">
-                        {isLoading ? (
-                            <div className="flex items-center space-x-1 text-sm sm:text-base lg:text-lg text-gray-600">
-                                <span>ICC Legal Research Assistant is typing</span>
-                                <div className="typing-dots"></div>
+                <div className="w-full">
+                    {isLoading ? (
+                        <div className="flex justify-center mb-6 sm:mb-8">
+                            <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl w-full px-3 sm:px-4 lg:px-6">
+                                <div className="flex items-center space-x-1 text-sm sm:text-base lg:text-lg text-gray-600">
+                                    <span>ICC Legal Research Assistant is typing</span>
+                                    <div className="typing-dots"></div>
+                                </div>
                             </div>
-                        ) : (
-                            renderMarkdown(message)
-                        )}
-                    </div>
+                        </div>
+                    ) : (
+                        renderMarkdown(message)
+                    )}
                 </div>
             );
         };
@@ -499,6 +511,10 @@
 
             const currentConversation = conversations.find(c => c.id === currentConversationId);
             const messages = currentConversation?.messages || [];
+            
+            // Debug logging
+            console.log('Current conversation:', currentConversation);
+            console.log('Messages:', messages);
 
             // Utility functions
             const formatTimestamp = (timestamp) => {
@@ -739,54 +755,58 @@
             }, [messages]);
 
             const sendMessage = async (messageText) => {
+                console.log('Sending message:', messageText);
                 const userMessage = {
                     id: Date.now(),
                     text: messageText,
                     isUser: true
                 };
+                console.log('User message created:', userMessage);
 
-                // Update current conversation
-                const updatedConversations = conversations.map(conv =>
-                    conv.id === currentConversationId
-                        ? { ...conv, messages: [...conv.messages, userMessage], lastMessage: messageText }
-                        : conv
-                );
-                setConversations(updatedConversations);
-
-                // Check if this is the first message in the conversation and update title
-                const currentConv = updatedConversations.find(c => c.id === currentConversationId);
-                if (currentConv && currentConv.messages.length === 1) {
-                    // This is the first message, update the conversation title
-                    const firstWords = messageText.split(' ').slice(0, 4).join(' ');
-                    const newTitle = firstWords.length > 0 ? firstWords : "New Conversation";
-                    
-                    // Update the conversation title locally
-                    const updatedConv = { ...currentConv, title: newTitle };
-                    const updatedConversationsWithTitle = conversations.map(conv =>
-                        conv.id === currentConversationId ? updatedConv : conv
+                // Update current conversation with user message
+                setConversations(prevConversations => {
+                    console.log('Previous conversations:', prevConversations);
+                    const updatedConversations = prevConversations.map(conv =>
+                        conv.id === currentConversationId
+                            ? { ...conv, messages: [...conv.messages, userMessage], lastMessage: messageText }
+                            : conv
                     );
-                    setConversations(updatedConversationsWithTitle);
                     
-                    // Update title in Firestore
-                    try {
-                        const token = localStorage.getItem('access_token');
-                        await fetch(`/conversations/${currentConversationId}`, {
-                            method: 'PUT',
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ title: newTitle })
-                        });
-                    } catch (error) {
-                        console.error('Error updating conversation title:', error);
+                    // Check if this is the first message and update title
+                    const currentConv = updatedConversations.find(c => c.id === currentConversationId);
+                    if (currentConv && currentConv.messages.length === 1) {
+                        const firstWords = messageText.split(' ').slice(0, 4).join(' ');
+                        const newTitle = firstWords.length > 0 ? firstWords : "New Conversation";
+                        currentConv.title = newTitle;
+                        
+                        // Update title in Firestore asynchronously
+                        (async () => {
+                            try {
+                                const token = localStorage.getItem('access_token');
+                                await fetch(`/conversations/${currentConversationId}`, {
+                                    method: 'PUT',
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ title: newTitle })
+                                });
+                            } catch (error) {
+                                console.error('Error updating conversation title:', error);
+                            }
+                        })();
                     }
-                }
-
-                // Save to Firestore
-                if (currentConv) {
-                    await saveConversation(currentConversationId, currentConv.messages);
-                }
+                    
+                    // Save to Firestore asynchronously
+                    (async () => {
+                        if (currentConv) {
+                            await saveConversation(currentConversationId, currentConv.messages);
+                        }
+                    })();
+                    
+                    console.log('Updated conversations:', updatedConversations);
+                    return updatedConversations;
+                });
 
                 setIsLoading(true);
 
@@ -832,6 +852,15 @@
                                     ? { ...conv, messages: [...conv.messages, assistantMessage] }
                                     : conv
                             ));
+                            
+                            // Save to Firestore
+                            setConversations(prev => {
+                                const currentConv = prev.find(c => c.id === currentConversationId);
+                                if (currentConv) {
+                                    saveConversation(currentConversationId, currentConv.messages);
+                                }
+                                return prev;
+                            });
                         } else {
                             throw new Error('Failed to send message');
                         }
@@ -845,18 +874,21 @@
                         };
 
                         // Update current conversation with assistant response
-                        const updatedConversations = conversations.map(conv =>
-                            conv.id === currentConversationId
-                                ? { ...conv, messages: [...conv.messages, assistantMessage] }
-                                : conv
-                        );
-                        setConversations(updatedConversations);
-
-                        // Save to Firestore
-                        const currentConv = updatedConversations.find(c => c.id === currentConversationId);
-                        if (currentConv) {
-                            await saveConversation(currentConversationId, currentConv.messages);
-                        }
+                        setConversations(prev => {
+                            const updatedConversations = prev.map(conv =>
+                                conv.id === currentConversationId
+                                    ? { ...conv, messages: [...conv.messages, assistantMessage] }
+                                    : conv
+                            );
+                            
+                            // Save to Firestore
+                            const currentConv = updatedConversations.find(c => c.id === currentConversationId);
+                            if (currentConv) {
+                                saveConversation(currentConversationId, currentConv.messages);
+                            }
+                            
+                            return updatedConversations;
+                        });
                     }
                 } catch (error) {
                     console.error('Error sending message:', error);

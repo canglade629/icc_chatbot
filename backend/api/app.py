@@ -34,10 +34,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files from frontend directory
+# Mount static files from frontend/static directory
 import os
-frontend_path = os.path.join(os.path.dirname(__file__), "../../frontend")
-app.mount("/static", StaticFiles(directory=frontend_path), name="static")
+frontend_static_path = os.path.join(os.path.dirname(__file__), "../../frontend/static")
+app.mount("/static", StaticFiles(directory=frontend_static_path), name="static")
 
 # Security
 security = HTTPBearer()

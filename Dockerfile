@@ -1,23 +1,41 @@
-# Use Python 3.11 slim image
-FROM python:3.11-slim
+# Multi-stage build for optimization
+FROM python:3.11-slim AS builder
 
-# Set working directory
-WORKDIR /app
-
-# Install system dependencies
+# Install only build dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy and install requirements
+COPY requirements-web.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements-web.txt
 
-# Copy application code
-COPY . .
+# Final stage - minimal runtime image
+FROM python:3.11-slim
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Set working directory
+WORKDIR /app
+
+# Copy only necessary application files
+COPY main.py .
+COPY backend/ ./backend/
+COPY frontend/ ./frontend/
+COPY config/ ./config/
 
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash app && chown -R app:app /app

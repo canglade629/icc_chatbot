@@ -51,7 +51,30 @@ __pycache__/
 .pytest_cache/
 databricks/
 chunking/
+data/
+output/
+save/
+*.ipynb
+*.parquet
+*.pdf
+*.csv
+*.json
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.pkl
+*.joblib
+*.h5
+*.model
 
-# Logs
+# Development files
+requirements.txt
+env.example
+.env
+.DS_Store
 *.log
+
+# Documentation
+*.md
 
