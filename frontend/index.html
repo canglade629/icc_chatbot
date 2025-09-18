@@ -29,9 +29,16 @@
         }
         
         /* Markdown styling */
+        .markdown-content {
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        
         .markdown-content h1, .markdown-content h2, .markdown-content h3, .markdown-content h4, .markdown-content h5, .markdown-content h6 {
             font-weight: bold;
-            margin: 1.5rem 0 0.5rem 0;
+            margin: 0.75rem 0 0.25rem 0;
         }
         
         .markdown-content h1 { font-size: 1.875rem; }
@@ -42,17 +49,18 @@
         .markdown-content h6 { font-size: 0.875rem; }
         
         .markdown-content p {
-            margin: 1rem 0;
-            line-height: 1.7;
+            margin: 0.5rem 0;
+            line-height: 1.2;
         }
         
         .markdown-content ul, .markdown-content ol {
-            margin: 1rem 0;
+            margin: 0.5rem 0;
             padding-left: 1.5rem;
         }
         
         .markdown-content li {
-            margin: 0.5rem 0;
+            margin: 0.25rem 0;
+            line-height: 1.2;
         }
         
         .markdown-content code {
@@ -65,10 +73,10 @@
         
         .markdown-content pre {
             background-color: #f3f4f6;
-            padding: 1rem;
+            padding: 0.75rem;
             border-radius: 0.5rem;
             overflow-x: auto;
-            margin: 1rem 0;
+            margin: 0.5rem 0;
         }
         
         .markdown-content pre code {
@@ -79,7 +87,7 @@
         .markdown-content blockquote {
             border-left: 4px solid #e5e7eb;
             padding-left: 1rem;
-            margin: 1rem 0;
+            margin: 0.5rem 0;
             font-style: italic;
             color: #6b7280;
         }
@@ -309,6 +317,13 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         
+        /* Placeholder text centering */
+        .chat-textarea::placeholder {
+            line-height: 1.4;
+            position: relative;
+            top: 0.125rem;
+        }
+        
         .chat-textarea:focus {
             border: none !important;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
@@ -324,6 +339,10 @@
             background-color: var(--message-user-bg) !important;
             border-radius: 20px !important;
             color: var(--text-primary) !important;
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            white-space: pre-wrap;
         }
         
         
@@ -411,9 +430,9 @@
                 if (isUser) {
                     return (
                         <div className="flex justify-end mb-6 sm:mb-8">
-                            <div className="max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl">
-                                <div className="user-message p-3 sm:p-4 inline-block">
-                                    <p className="text-xs sm:text-sm lg:text-base leading-relaxed">{text}</p>
+                            <div className="max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl w-full">
+                                <div className="user-message p-3 sm:p-4 inline-block w-full">
+                                    <p className="text-xs sm:text-sm lg:text-base leading-relaxed break-words">{text}</p>
                                 </div>
                             </div>
                         </div>
@@ -424,9 +443,9 @@
                     const html = marked.parse(text);
                     return (
                         <div className="flex justify-start mb-6 sm:mb-8">
-                            <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl">
+                            <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl w-full">
                                 <div 
-                                    className="markdown-content text-sm leading-relaxed"
+                                    className="markdown-content text-sm leading-tight"
                                     dangerouslySetInnerHTML={{ __html: html }}
                                 />
                             </div>
@@ -436,8 +455,8 @@
                     console.error('Markdown parsing error:', error);
                     return (
                         <div className="flex justify-start mb-6 sm:mb-8">
-                            <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl">
-                                <p className="text-sm leading-relaxed">{text}</p>
+                            <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl w-full">
+                                <p className="text-sm leading-tight break-words">{text}</p>
                             </div>
                         </div>
                     );
