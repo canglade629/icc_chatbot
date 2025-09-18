@@ -60,7 +60,9 @@ data_processing/save/
 *.json
 *.pdf
 *.docx
+# Exclude specific txt files but keep requirements files
 *.txt
+!requirements*.txt
 
 # Configuration files (keep structure, exclude sensitive data)
 config/firebase-credentials/
