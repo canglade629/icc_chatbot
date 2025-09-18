@@ -33,9 +33,8 @@ icc_chatbot/
 │   ├── output/              # Processed data outputs
 │   │   └── *.parquet        # Chunked data files
 │   └── save/                # Additional data storage
-├── config/                   # Configuration files
-│   ├── settings.py          # Application settings
-│   └── firebase-credentials/ # Firebase service account
+├── config/                   # Configuration files (local only)
+│   └── firebase-credentials/ # Firebase service account (not tracked)
 ├── scripts/                  # Utility scripts
 │   └── explore_databricks_data.py
 ├── data/                     # Raw data files
@@ -82,9 +81,8 @@ icc_chatbot/
 
 ### Prerequisites
 - Python 3.8+
-- Node.js (for frontend development)
 - Google Cloud Project with Firestore enabled
-- Firebase service account credentials
+- Firebase service account credentials (for production)
 
 ### 1. Clone the Repository
 ```bash
@@ -100,10 +98,10 @@ pip install -r requirements.txt
 ### 3. Configure Environment
 Create a `.env` file in the root directory:
 ```env
-# JWT Configuration
+# JWT Configuration (REQUIRED)
 JWT_SECRET_KEY=your-super-secret-jwt-key-here
 
-# Firebase Configuration
+# Firebase Configuration (OPTIONAL - will use mock auth if not provided)
 FIREBASE_SERVICE_ACCOUNT_PATH=config/firebase-credentials/icc-project-472009-firebase-adminsdk.json
 
 # Server Configuration
@@ -112,10 +110,12 @@ PORT=8000
 DEBUG=false
 ```
 
-### 4. Set up Firebase
+### 4. Set up Firebase (Production)
 1. Download your Firebase service account JSON file
 2. Place it in `config/firebase-credentials/`
 3. Update the path in your `.env` file
+
+**Note**: For local development, the app will automatically use mock authentication if Firebase credentials are not available.
 
 ### 5. Run the Application
 ```bash
@@ -125,6 +125,29 @@ python main.py
 The application will be available at `http://localhost:8000`
 
 ## 🔧 Development
+
+### Local Development Setup
+For local development without Firebase setup:
+
+1. **Clone and install dependencies**:
+   ```bash
+   git clone <repository-url>
+   cd icc_chatbot
+   pip install -r requirements.txt
+   ```
+
+2. **Create environment file**:
+   ```bash
+   cp env.example .env
+   # Edit .env with your JWT_SECRET_KEY
+   ```
+
+3. **Run the application**:
+   ```bash
+   python main.py
+   ```
+
+The app will automatically use mock authentication for local development.
 
 ### Backend Development
 The backend is built with FastAPI and organized into:
