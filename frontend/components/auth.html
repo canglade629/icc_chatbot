@@ -69,11 +69,50 @@
             .keyboard-open {
                 height: 100vh;
                 height: 100dvh;
+                padding: 1rem;
+            }
+            
+            .keyboard-open .auth-container {
+                transform: scale(0.9);
+                margin-top: -2rem;
+            }
+            
+            /* Smooth transitions for keyboard open/close */
+            .auth-container {
+                transition: all 0.3s ease;
+            }
+            
+            /* Ensure form stays visible when keyboard opens */
+            .keyboard-open .glass-effect {
+                max-height: calc(100vh - 2rem);
+                max-height: calc(100dvh - 2rem);
+                overflow-y: auto;
+            }
+            
+            /* Improve mobile form layout */
+            .keyboard-open .auth-container {
+                max-width: 100%;
+                margin: 0 auto;
+            }
+            
+            /* Better spacing when keyboard is open */
+            .keyboard-open .glass-effect {
+                padding: 1.5rem;
+            }
+            
+            /* Ensure inputs are easily accessible */
+            .keyboard-open input {
+                margin-bottom: 0.75rem;
+            }
+            
+            /* Smooth scroll to focused input */
+            .keyboard-open .glass-effect {
+                scroll-behavior: smooth;
             }
         }
     </style>
 </head>
-<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4" id="auth-body">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -85,6 +124,8 @@
                 password: '',
                 displayName: ''
             });
+            const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+            const [isMobile, setIsMobile] = useState(false);
 
             const handleChange = (e) => {
                 setFormData({
@@ -98,8 +139,78 @@
                 onSubmit(formData);
             };
 
+            // Mobile detection
+            useEffect(() => {
+                const checkMobile = () => {
+                    setIsMobile(window.innerWidth <= 768);
+                };
+                
+                checkMobile();
+                window.addEventListener('resize', checkMobile);
+                return () => window.removeEventListener('resize', checkMobile);
+            }, []);
+
+            // Keyboard detection for mobile
+            useEffect(() => {
+                if (!isMobile) return;
+
+                const initialViewportHeight = window.innerHeight;
+                let timeoutId;
+
+                const handleResize = () => {
+                    clearTimeout(timeoutId);
+                    timeoutId = setTimeout(() => {
+                        const currentHeight = window.innerHeight;
+                        const heightDifference = initialViewportHeight - currentHeight;
+                        
+                        // If height decreased by more than 150px, keyboard is likely open
+                        setIsKeyboardOpen(heightDifference > 150);
+                        
+                        // Update body class
+                        const body = document.getElementById('auth-body');
+                        if (body) {
+                            if (heightDifference > 150) {
+                                body.classList.add('keyboard-open');
+                            } else {
+                                body.classList.remove('keyboard-open');
+                            }
+                        }
+                    }, 100);
+                };
+
+                window.addEventListener('resize', handleResize);
+                return () => {
+                    window.removeEventListener('resize', handleResize);
+                    clearTimeout(timeoutId);
+                };
+            }, [isMobile]);
+
+            // Focus/blur handlers for keyboard detection
+            const handleFocus = () => {
+                if (isMobile) {
+                    setIsKeyboardOpen(true);
+                    const body = document.getElementById('auth-body');
+                    if (body) {
+                        body.classList.add('keyboard-open');
+                    }
+                }
+            };
+
+            const handleBlur = () => {
+                if (isMobile) {
+                    // Delay to allow for keyboard close animation
+                    setTimeout(() => {
+                        setIsKeyboardOpen(false);
+                        const body = document.getElementById('auth-body');
+                        if (body) {
+                            body.classList.remove('keyboard-open');
+                        }
+                    }, 300);
+                }
+            };
+
             return (
-                <div className="w-full max-w-md">
+                <div className="w-full max-w-md auth-container">
                     <div className="glass-effect rounded-2xl p-8 shadow-2xl">
                         {/* Header */}
                         <div className="text-center mb-8">
@@ -147,6 +258,8 @@
                                         name="displayName"
                                         value={formData.displayName}
                                         onChange={handleChange}
+                                        onFocus={handleFocus}
+                                        onBlur={handleBlur}
                                         className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none input-focus transition-all mobile-input"
                                         placeholder="Enter your full name"
                                         required={!isLogin}
@@ -163,6 +276,8 @@
                                     name="email"
                                     value={formData.email}
                                     onChange={handleChange}
+                                    onFocus={handleFocus}
+                                    onBlur={handleBlur}
                                     className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none input-focus transition-all mobile-input"
                                     placeholder="Enter your email"
                                     required
@@ -178,6 +293,8 @@
                                     name="password"
                                     value={formData.password}
                                     onChange={handleChange}
+                                    onFocus={handleFocus}
+                                    onBlur={handleBlur}
                                     className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none input-focus transition-all mobile-input"
                                     placeholder="Enter your password"
                                     required

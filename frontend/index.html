@@ -197,6 +197,23 @@
                 right: 0;
             }
         }
+        
+        /* Mobile menu fixes */
+        @media (max-width: 1023px) {
+            .mobile-menu-hidden {
+                transform: translateX(-100%);
+            }
+            .mobile-menu-visible {
+                transform: translateX(0);
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .mobile-menu-hidden,
+            .mobile-menu-visible {
+                transform: translateX(0);
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50 h-screen overflow-hidden">
@@ -483,7 +500,7 @@
                     <div className={`bg-gray-900 text-white transition-all duration-300 flex flex-col h-screen fixed lg:relative z-50 ${
                         isCollapsed ? 'w-16' : 'w-64'
                     } ${
-                        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                        isMobileMenuOpen ? 'mobile-menu-visible' : 'mobile-menu-hidden'
                     }`}>
                         {/* Header */}
                         <div className="p-4 border-b border-gray-700">
