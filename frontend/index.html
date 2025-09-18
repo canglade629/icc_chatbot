@@ -166,6 +166,13 @@
                 min-width: 44px;
             }
             
+            /* Mobile send button specific styling */
+            .mobile-send-button {
+                min-height: 24px;
+                min-width: 24px;
+                touch-action: manipulation;
+            }
+            
             /* Smooth keyboard transitions */
             .chat-input-container {
                 transition: all 0.3s ease;
@@ -432,7 +439,7 @@
                                         <button
                                             type="submit"
                                             disabled={isLoading}
-                                            className={`absolute ${hasScroll ? 'right-2 sm:right-3 bottom-2 sm:bottom-3' : 'right-2 sm:right-3 top-1/2 transform -translate-y-1/2'} w-8 h-8 sm:w-9 sm:h-9 bg-gray-700 hover:bg-gray-800 text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                                            className={`absolute ${hasScroll ? 'right-2 sm:right-3 bottom-2 sm:bottom-3' : 'right-2 sm:right-3 top-1/2 transform -translate-y-1/2'} w-6 h-6 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-gray-700 hover:bg-gray-800 text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed mobile-send-button`}
                                         >
                                             <i className="fas fa-arrow-up text-xs sm:text-sm"></i>
                                         </button>
@@ -470,7 +477,7 @@
                                     <button
                                         type="submit"
                                         disabled={isLoading}
-                                        className={`absolute ${hasScroll ? 'right-2 sm:right-3 bottom-2 sm:bottom-3' : 'right-2 sm:right-3 top-1/2 transform -translate-y-1/2'} w-8 h-8 sm:w-9 sm:h-9 bg-gray-700 hover:bg-gray-800 text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                                        className={`absolute ${hasScroll ? 'right-2 sm:right-3 bottom-2 sm:bottom-3' : 'right-2 sm:right-3 top-1/2 transform -translate-y-1/2'} w-6 h-6 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-gray-700 hover:bg-gray-800 text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed mobile-send-button`}
                                     >
                                         <i className="fas fa-arrow-up text-xs sm:text-sm"></i>
                                     </button>
@@ -492,7 +499,11 @@
                     {isMobileMenuOpen && (
                         <div 
                             className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
-                            onClick={() => setIsMobileMenuOpen(false)}
+                            onClick={() => {
+                                console.log('Mobile overlay clicked, closing menu');
+                                setIsMobileMenuOpen(false);
+                            }}
+                            style={{ zIndex: 40 }}
                         ></div>
                     )}
 
@@ -1254,8 +1265,12 @@
                                     </button>
                                     {/* Mobile Menu Button */}
                                     <button
-                                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                        className="lg:hidden p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                                        onClick={() => {
+                                            console.log('Mobile menu button clicked, current state:', isMobileMenuOpen);
+                                            setIsMobileMenuOpen(!isMobileMenuOpen);
+                                        }}
+                                        className="lg:hidden p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors z-50 relative"
+                                        style={{ zIndex: 9999 }}
                                     >
                                         <i className="fas fa-bars"></i>
                                     </button>
