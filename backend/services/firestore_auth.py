@@ -34,45 +34,91 @@ class FirestoreAuth:
             if firebase_admin._apps:
                 return firestore.client()
             
-            # For Cloud Run, try to use default credentials first
-            try:
-                # Try to initialize with default credentials (works in Cloud Run)
-                firebase_admin.initialize_app(options={
-                    'projectId': 'icc-project-472009'
-                })
-                print("✅ Firebase initialized with default credentials")
-                return firestore.client()
-            except Exception as default_error:
-                print(f"Default credentials failed: {default_error}")
-                
-                # Fallback to service account file
-                service_account_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH')
-                if not service_account_path:
-                    # Try default locations
-                    possible_paths = [
-                        'config/firebase-credentials/icc-project-472009-firebase-adminsdk.json',
-                        'firebase-credentials/icc-project-472009-firebase-adminsdk.json',
-                        '../../config/firebase-credentials/icc-project-472009-firebase-adminsdk.json'
-                    ]
-                    
-                    for path in possible_paths:
-                        if os.path.exists(path):
-                            service_account_path = path
-                            break
-                
-                if not service_account_path:
-                    raise ValueError("Firebase service account not found in any expected location")
-                
-                # Initialize the app with service account credentials
-                cred = credentials.Certificate(service_account_path)
-                firebase_admin.initialize_app(cred, {
-                    'projectId': 'icc-project-472009'
-                })
-                print("✅ Firebase initialized with service account file")
-                return firestore.client()
+            # Try multiple initialization methods
+            initialization_methods = [
+                self._try_default_credentials,
+                self._try_service_account_file,
+                self._try_environment_credentials
+            ]
+            
+            for method in initialization_methods:
+                try:
+                    client = method()
+                    if client:
+                        return client
+                except Exception as e:
+                    print(f"Initialization method failed: {e}")
+                    continue
+            
+            # If all methods fail, fall back to mock
+            print("❌ All Firestore initialization methods failed")
+            print("🔄 Falling back to mock authentication")
+            return None
+            
         except Exception as e:
             print(f"❌ Error initializing Firestore: {e}")
             print("🔄 Falling back to mock authentication")
+            return None
+    
+    def _try_default_credentials(self):
+        """Try to initialize with default credentials (works in Cloud Run and with gcloud auth)"""
+        try:
+            firebase_admin.initialize_app(options={
+                'projectId': 'icc-project-472009'
+            })
+            print("✅ Firebase initialized with default credentials")
+            return firestore.client()
+        except Exception as e:
+            print(f"Default credentials failed: {e}")
+            return None
+    
+    def _try_service_account_file(self):
+        """Try to initialize with service account file"""
+        try:
+            service_account_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH')
+            if not service_account_path:
+                # Try default locations
+                possible_paths = [
+                    'config/firebase-credentials/icc-project-472009-firebase-adminsdk.json',
+                    'firebase-credentials/icc-project-472009-firebase-adminsdk.json',
+                    '../../config/firebase-credentials/icc-project-472009-firebase-adminsdk.json',
+                    os.path.join(os.path.dirname(__file__), '../../config/firebase-credentials/icc-project-472009-firebase-adminsdk.json')
+                ]
+                
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        service_account_path = path
+                        break
+            
+            if not service_account_path:
+                raise ValueError("Firebase service account not found")
+            
+            # Initialize the app with service account credentials
+            cred = credentials.Certificate(service_account_path)
+            firebase_admin.initialize_app(cred, {
+                'projectId': 'icc-project-472009'
+            })
+            print(f"✅ Firebase initialized with service account file: {service_account_path}")
+            return firestore.client()
+        except Exception as e:
+            print(f"Service account file failed: {e}")
+            return None
+    
+    def _try_environment_credentials(self):
+        """Try to initialize with environment variable credentials"""
+        try:
+            # Check for Google Application Credentials
+            if os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
+                cred = credentials.ApplicationDefault()
+                firebase_admin.initialize_app(cred, {
+                    'projectId': 'icc-project-472009'
+                })
+                print("✅ Firebase initialized with GOOGLE_APPLICATION_CREDENTIALS")
+                return firestore.client()
+            else:
+                raise ValueError("GOOGLE_APPLICATION_CREDENTIALS not set")
+        except Exception as e:
+            print(f"Environment credentials failed: {e}")
             return None
     
     def _hash_password(self, password: str) -> str:
@@ -87,7 +133,7 @@ class FirestoreAuth:
         """Create a new user in Firestore"""
         if self.use_mock:
             # Mock implementation for testing
-            from firebase_config_mock import firebase_auth as mock_auth
+            from .firebase_config_mock import firebase_auth as mock_auth
             return await mock_auth.create_user(email, password, display_name)
         
         try:
@@ -128,7 +174,7 @@ class FirestoreAuth:
         """Verify user credentials"""
         if self.use_mock:
             # Mock implementation for testing
-            from firebase_config_mock import firebase_auth as mock_auth
+            from .firebase_config_mock import firebase_auth as mock_auth
             return await mock_auth.verify_user(email, password)
         
         try:
@@ -168,7 +214,7 @@ class FirestoreAuth:
         """Get user data by UID"""
         if self.use_mock:
             # Mock implementation for testing
-            from firebase_config_mock import firebase_auth as mock_auth
+            from .firebase_config_mock import firebase_auth as mock_auth
             return await mock_auth.get_user_by_uid(uid)
         
         try:
@@ -264,7 +310,7 @@ class FirestoreAuth:
         """Create a new conversation for a user"""
         if self.use_mock:
             # Mock implementation for testing
-            from firebase_config_mock import firebase_auth as mock_auth
+            from .firebase_config_mock import firebase_auth as mock_auth
             return await mock_auth.create_conversation(uid, title)
         
         try:
@@ -297,7 +343,7 @@ class FirestoreAuth:
         """Get all conversations for a user"""
         if self.use_mock:
             # Mock implementation for testing
-            from firebase_config_mock import firebase_auth as mock_auth
+            from .firebase_config_mock import firebase_auth as mock_auth
             return await mock_auth.get_user_conversations(uid)
         
         try:
@@ -349,7 +395,7 @@ class FirestoreAuth:
         """Update a conversation"""
         if self.use_mock:
             # Mock implementation for testing
-            from firebase_config_mock import firebase_auth as mock_auth
+            from .firebase_config_mock import firebase_auth as mock_auth
             return await mock_auth.update_conversation(conversation_id, title, messages)
         
         try:
@@ -379,7 +425,7 @@ class FirestoreAuth:
         """Delete a conversation"""
         if self.use_mock:
             # Mock implementation for testing
-            from firebase_config_mock import firebase_auth as mock_auth
+            from .firebase_config_mock import firebase_auth as mock_auth
             return await mock_auth.delete_conversation(conversation_id)
         
         try:
@@ -392,7 +438,7 @@ class FirestoreAuth:
         """Enforce conversation limit by deleting oldest conversations"""
         if self.use_mock:
             # Mock implementation for testing
-            from firebase_config_mock import firebase_auth as mock_auth
+            from .firebase_config_mock import firebase_auth as mock_auth
             return await mock_auth._enforce_conversation_limit(uid, max_conversations)
         
         try:

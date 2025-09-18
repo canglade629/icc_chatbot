@@ -2,10 +2,22 @@
 .env
 .env.local
 .env.production
+.env.development
+.env.test
 
-# Firebase credentials
-firebase-credentials/*.json
-firebase-service-account.json
+# Firebase credentials and configuration
+firebase-credentials/
+config/firebase-credentials/
+*.json
+!package.json
+!tsconfig.json
+!firebase.json
+!firestore.rules
+!storage.rules
+
+# Google Cloud credentials
+gcloud-service-account.json
+service-account-key.json
 
 # Python
 __pycache__/
@@ -94,3 +106,154 @@ firebase-credentials/
 # Cache directories
 .cache/
 .pytest_cache/
+
+# Local development files
+setup_local.py
+test_firestore.py
+test_*.py
+*_test.py
+debug_*.py
+local_*.py
+
+# Development scripts and utilities
+dev_scripts/
+scripts/local/
+tools/dev/
+
+# Deployment artifacts
+deploy.sh
+deploy_*.sh
+deployment/
+.dockerignore
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Cloud Run and deployment
+.gcloudignore
+cloudbuild.yaml
+cloudbuild_*.yaml
+app.yaml
+app_*.yaml
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Local logs and monitoring
+logs/
+*.log
+monitoring/
+metrics/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.classpath
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Temporary and backup files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+
+# Node.js (if any frontend build tools are used)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+build/
+dist/
+out/
+target/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Local configuration overrides
+config/local/
+config/development/
+config/production/
+config/*.local.*
+config/*.dev.*
+config/*.prod.*
+
+# Secrets and sensitive files
+secrets/
+.secrets/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Local data and test data
+test_data/
+local_data/
+sample_data/
+mock_data/
+
+# Performance and profiling
+*.prof
+*.profile
