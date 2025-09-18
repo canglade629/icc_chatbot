@@ -1097,6 +1097,12 @@
             };
 
             const newConversation = async () => {
+                // Check if current conversation is empty
+                if (currentConversation && currentConversation.messages.length === 0) {
+                    // Don't create a new conversation if current one is empty
+                    console.log('Current conversation is empty, not creating new one');
+                    return;
+                }
                 await createNewConversation();
             };
 
