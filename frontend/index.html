@@ -612,7 +612,7 @@
                                         onKeyPress={handleKeyPress}
                                         onFocus={handleFocus}
                                         onBlur={handleBlur}
-                                        placeholder="Search past judgments or ask about IHL provisions..."
+                                        placeholder={isMobile ? "Ask about legal provisions..." : "Search past judgments or ask about IHL provisions..."}
                                         className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${hasScroll ? 'pr-12 sm:pr-14' : 'pr-12 sm:pr-14'} rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base overflow-y-auto chat-textarea mobile-input ${hasScroll ? 'has-scroll' : ''} ${isKeyboardOpen ? 'keyboard-open' : ''}`}
                                         rows="1"
                                         disabled={isLoading}
@@ -650,7 +650,7 @@
                                     onKeyPress={handleKeyPress}
                                     onFocus={handleFocus}
                                     onBlur={handleBlur}
-                                    placeholder="Search past judgments or ask about IHL provisions..."
+                                    placeholder={isMobile ? "Ask about legal provisions..." : "Search past judgments or ask about IHL provisions..."}
                                     className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${hasScroll ? 'pr-12 sm:pr-14' : 'pr-12 sm:pr-14'} rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base overflow-y-auto chat-textarea mobile-input ${hasScroll ? 'has-scroll' : ''} ${isKeyboardOpen ? 'keyboard-open' : ''}`}
                                     rows="1"
                                     disabled={isLoading}
@@ -679,6 +679,32 @@
         const Sidebar = ({ conversations, currentConversationId, onSelectConversation, onNewConversation, isMobileMenuOpen, setIsMobileMenuOpen, user, onLogout, formatTimestamp, isDarkMode, toggleDarkMode }) => {
             const [isCollapsed, setIsCollapsed] = useState(false);
             const [showUserMenu, setShowUserMenu] = useState(false);
+            
+            // Swipe functionality for mobile
+            const [touchStart, setTouchStart] = useState(null);
+            const [touchEnd, setTouchEnd] = useState(null);
+            
+            const minSwipeDistance = 50;
+            
+            const onTouchStart = (e) => {
+                setTouchEnd(null);
+                setTouchStart(e.targetTouches[0].clientX);
+            };
+            
+            const onTouchMove = (e) => {
+                setTouchEnd(e.targetTouches[0].clientX);
+            };
+            
+            const onTouchEnd = () => {
+                if (!touchStart || !touchEnd) return;
+                
+                const distance = touchStart - touchEnd;
+                const isLeftSwipe = distance > minSwipeDistance;
+                
+                if (isLeftSwipe && isMobileMenuOpen) {
+                    setIsMobileMenuOpen(false);
+                }
+            };
 
             return (
                 <>
@@ -690,16 +716,24 @@
                                 console.log('Mobile overlay clicked, closing menu');
                                 setIsMobileMenuOpen(false);
                             }}
+                            onTouchStart={onTouchStart}
+                            onTouchMove={onTouchMove}
+                            onTouchEnd={onTouchEnd}
                             style={{ zIndex: 40 }}
                         ></div>
                     )}
 
                     {/* Sidebar */}
-                    <div className={`bg-gray-900 text-white transition-all duration-300 flex flex-col h-screen fixed lg:relative z-50 ${
-                        isCollapsed ? 'w-16' : 'w-64'
-                    } ${
-                        isMobileMenuOpen ? 'mobile-menu-visible' : 'mobile-menu-hidden'
-                    }`}>
+                    <div 
+                        className={`bg-gray-900 text-white transition-all duration-300 flex flex-col h-screen fixed lg:relative z-50 ${
+                            isCollapsed ? 'w-16' : 'w-64'
+                        } ${
+                            isMobileMenuOpen ? 'mobile-menu-visible' : 'mobile-menu-hidden'
+                        }`}
+                        onTouchStart={onTouchStart}
+                        onTouchMove={onTouchMove}
+                        onTouchEnd={onTouchEnd}
+                    >
                         {/* Header */}
                         <div className="p-4 border-b border-gray-700">
                             <div className="flex items-center justify-between">
@@ -1442,6 +1476,17 @@
                         <div className="px-3 sm:px-4 py-2 sm:py-3 relative mobile-header" style={{ zIndex: 9998, backgroundColor: 'var(--bg-primary)' }}>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2 sm:space-x-3">
+                                    {/* Mobile Menu Button - Left side */}
+                                    <button
+                                        onClick={() => {
+                                            console.log('Mobile menu button clicked, current state:', isMobileMenuOpen);
+                                            setIsMobileMenuOpen(!isMobileMenuOpen);
+                                        }}
+                                        className="lg:hidden p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors relative"
+                                        style={{ zIndex: 9999, position: 'relative' }}
+                                    >
+                                        <i className="fas fa-bars"></i>
+                                    </button>
                                     <div 
                                         className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center cursor-pointer hover:bg-gray-100 rounded-lg transition-colors logo-container"
                                         onClick={() => {
@@ -1494,17 +1539,6 @@
                                         title="Logout"
                                     >
                                         <i className="fas fa-sign-out-alt"></i>
-                                    </button>
-                                    {/* Mobile Menu Button */}
-                                    <button
-                                        onClick={() => {
-                                            console.log('Mobile menu button clicked, current state:', isMobileMenuOpen);
-                                            setIsMobileMenuOpen(!isMobileMenuOpen);
-                                        }}
-                                        className="lg:hidden p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors relative"
-                                        style={{ zIndex: 9999, position: 'relative' }}
-                                    >
-                                        <i className="fas fa-bars"></i>
                                     </button>
                                 </div>
                             </div>
