@@ -318,23 +318,26 @@ class FirestoreAuth:
             await self._enforce_conversation_limit(uid)
             
             conversation_ref = self.db.collection('conversations').document()
-            now = datetime.utcnow()
             conversation_data = {
                 'uid': uid,
                 'title': title,
                 'messages': [],
-                'created_at': now,
-                'updated_at': now
+                'created_at': firestore.SERVER_TIMESTAMP,
+                'updated_at': firestore.SERVER_TIMESTAMP
             }
             conversation_ref.set(conversation_data)
+            
+            # Get the created document to return actual timestamps
+            created_doc = conversation_ref.get()
+            created_data = created_doc.to_dict()
             
             return {
                 'id': conversation_ref.id,
                 'uid': uid,
                 'title': title,
                 'messages': [],
-                'created_at': now.isoformat(),
-                'updated_at': now.isoformat()
+                'created_at': created_data['created_at'].isoformat() if created_data['created_at'] else datetime.utcnow().isoformat(),
+                'updated_at': created_data['updated_at'].isoformat() if created_data['updated_at'] else datetime.utcnow().isoformat()
             }
         except Exception as e:
             raise Exception(f"Error creating conversation: {str(e)}")
@@ -359,25 +362,38 @@ class FirestoreAuth:
                 created_at = conversation_data.get('created_at')
                 updated_at = conversation_data.get('updated_at')
                 
-                if hasattr(created_at, 'timestamp'):
-                    created_at = created_at.timestamp()
-                if hasattr(updated_at, 'timestamp'):
-                    updated_at = updated_at.timestamp()
+                def convert_timestamp(timestamp):
+                    """Convert various timestamp formats to ISO string"""
+                    if timestamp is None:
+                        return datetime.utcnow().isoformat()
+                    
+                    # Handle Firestore Timestamp objects
+                    if hasattr(timestamp, 'to_pydatetime'):
+                        return timestamp.to_pydatetime().isoformat()
+                    
+                    # Handle Python datetime objects
+                    if isinstance(timestamp, datetime):
+                        return timestamp.isoformat()
+                    
+                    # Handle Unix timestamps (int/float)
+                    if isinstance(timestamp, (int, float)):
+                        return datetime.fromtimestamp(timestamp).isoformat()
+                    
+                    # Handle ISO strings (already formatted)
+                    if isinstance(timestamp, str):
+                        try:
+                            # Validate it's a proper ISO string
+                            datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                            return timestamp
+                        except ValueError:
+                            pass
+                    
+                    # Fallback to current time
+                    print(f"Warning: Unknown timestamp format: {type(timestamp)} - {timestamp}")
+                    return datetime.utcnow().isoformat()
                 
-                # Convert to ISO string if it's a timestamp
-                if isinstance(created_at, (int, float)):
-                    created_at = datetime.fromtimestamp(created_at).isoformat()
-                elif isinstance(created_at, datetime):
-                    created_at = created_at.isoformat()
-                else:
-                    created_at = str(created_at) if created_at else datetime.utcnow().isoformat()
-                
-                if isinstance(updated_at, (int, float)):
-                    updated_at = datetime.fromtimestamp(updated_at).isoformat()
-                elif isinstance(updated_at, datetime):
-                    updated_at = updated_at.isoformat()
-                else:
-                    updated_at = str(updated_at) if updated_at else datetime.utcnow().isoformat()
+                created_at = convert_timestamp(created_at)
+                updated_at = convert_timestamp(updated_at)
                 
                 conversations.append({
                     'id': doc.id,
@@ -400,7 +416,7 @@ class FirestoreAuth:
         
         try:
             conversation_ref = self.db.collection('conversations').document(conversation_id)
-            update_data = {'updated_at': datetime.utcnow()}
+            update_data = {'updated_at': firestore.SERVER_TIMESTAMP}
             
             if title is not None:
                 update_data['title'] = title
