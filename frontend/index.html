@@ -253,6 +253,22 @@
                 top: 0;
                 z-index: 100;
             }
+            
+            /* Fix messages container spacing for mobile header */
+            .messages-container {
+                padding-top: 1rem !important;
+                padding-bottom: 1rem !important;
+            }
+            
+            /* Add extra top padding to first message on mobile */
+            .messages-container > div:first-child {
+                padding-top: 0.75rem;
+            }
+            
+            /* Ensure proper spacing for mobile header */
+            .mobile-messages-wrapper {
+                padding-top: 0.5rem;
+            }
         }
     </style>
 </head>
@@ -1315,8 +1331,10 @@
                         {hasMessages ? (
                             <>
                                 {/* Messages Container */}
-                                <div className={`flex-1 overflow-y-auto py-4 sm:py-6 lg:py-8 messages-container ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
+                                <div className={`flex-1 overflow-y-auto py-4 sm:py-6 lg:py-8 messages-container mobile-messages-wrapper ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
                                     <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl mx-auto px-3 sm:px-4">
+                                        {/* Mobile header spacer */}
+                                        <div className="block sm:hidden h-4"></div>
                                         {messages.map((message) => (
                                             <ChatMessage
                                                 key={message.id}
