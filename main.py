@@ -22,4 +22,13 @@ if __name__ == "__main__":
     host = os.environ.get("HOST", "0.0.0.0")
     
     print(f"🚀 Starting ICC Legal Research Assistant on {host}:{port}")
-    uvicorn.run(app, host=host, port=port)
+    print(f"📁 Working directory: {os.getcwd()}")
+    print(f"🐍 Python path: {sys.path}")
+    
+    try:
+        uvicorn.run(app, host=host, port=port, log_level="info")
+    except Exception as e:
+        print(f"❌ Failed to start server: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

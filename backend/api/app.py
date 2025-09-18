@@ -17,6 +17,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from services.firestore_auth import firestore_auth
 print("✅ Using Firestore-only authentication")
+print(f"🔧 Mock mode: {firestore_auth.use_mock}")
 
 from services.auth_service import auth_service
 

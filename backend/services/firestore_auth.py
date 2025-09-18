@@ -34,33 +34,45 @@ class FirestoreAuth:
             if firebase_admin._apps:
                 return firestore.client()
             
-            # Get the service account key
-            service_account_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH')
-            if not service_account_path:
-                # Try default locations
-                possible_paths = [
-                    'config/firebase-credentials/icc-project-472009-firebase-adminsdk.json',
-                    'firebase-credentials/icc-project-472009-firebase-adminsdk.json',
-                    '../../config/firebase-credentials/icc-project-472009-firebase-adminsdk.json'
-                ]
+            # For Cloud Run, try to use default credentials first
+            try:
+                # Try to initialize with default credentials (works in Cloud Run)
+                firebase_admin.initialize_app(options={
+                    'projectId': 'icc-project-472009'
+                })
+                print("✅ Firebase initialized with default credentials")
+                return firestore.client()
+            except Exception as default_error:
+                print(f"Default credentials failed: {default_error}")
                 
-                for path in possible_paths:
-                    if os.path.exists(path):
-                        service_account_path = path
-                        break
+                # Fallback to service account file
+                service_account_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH')
+                if not service_account_path:
+                    # Try default locations
+                    possible_paths = [
+                        'config/firebase-credentials/icc-project-472009-firebase-adminsdk.json',
+                        'firebase-credentials/icc-project-472009-firebase-adminsdk.json',
+                        '../../config/firebase-credentials/icc-project-472009-firebase-adminsdk.json'
+                    ]
+                    
+                    for path in possible_paths:
+                        if os.path.exists(path):
+                            service_account_path = path
+                            break
                 
                 if not service_account_path:
                     raise ValueError("Firebase service account not found in any expected location")
-            
-            # Initialize the app with service account credentials
-            cred = credentials.Certificate(service_account_path)
-            firebase_admin.initialize_app(cred, {
-                'projectId': 'icc-project-472009'
-            })
-            
-            return firestore.client()
+                
+                # Initialize the app with service account credentials
+                cred = credentials.Certificate(service_account_path)
+                firebase_admin.initialize_app(cred, {
+                    'projectId': 'icc-project-472009'
+                })
+                print("✅ Firebase initialized with service account file")
+                return firestore.client()
         except Exception as e:
-            print(f"Error initializing Firestore: {e}")
+            print(f"❌ Error initializing Firestore: {e}")
+            print("🔄 Falling back to mock authentication")
             return None
     
     def _hash_password(self, password: str) -> str:
