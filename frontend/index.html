@@ -222,6 +222,83 @@
             }
         }
         
+        /* Dark mode styles */
+        :root {
+            --bg-primary: #f9fafb;
+            --bg-secondary: #ffffff;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --sidebar-bg: #1f2937;
+            --sidebar-text: #ffffff;
+            --sidebar-hover: #374151;
+            --input-bg: #ffffff;
+            --input-border: #d1d5db;
+            --message-user-bg: #dbeafe;
+            --message-assistant-bg: #f3f4f6;
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #111827;
+            --bg-secondary: #1f2937;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --border-color: #374151;
+            --sidebar-bg: #0f172a;
+            --sidebar-text: #f1f5f9;
+            --sidebar-hover: #1e293b;
+            --input-bg: #374151;
+            --input-border: #4b5563;
+            --message-user-bg: #1e40af;
+            --message-assistant-bg: #374151;
+        }
+        
+        /* Apply theme variables */
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        
+        .bg-gray-50 {
+            background-color: var(--bg-primary) !important;
+        }
+        
+        .bg-white {
+            background-color: var(--bg-secondary) !important;
+        }
+        
+        .text-gray-800 {
+            color: var(--text-primary) !important;
+        }
+        
+        .text-gray-600 {
+            color: var(--text-secondary) !important;
+        }
+        
+        .border-gray-300 {
+            border-color: var(--border-color) !important;
+        }
+        
+        .bg-gray-900 {
+            background-color: var(--sidebar-bg) !important;
+        }
+        
+        .text-white {
+            color: var(--sidebar-text) !important;
+        }
+        
+        .hover\\:bg-gray-800:hover {
+            background-color: var(--sidebar-hover) !important;
+        }
+        
+        .bg-blue-50 {
+            background-color: var(--message-user-bg) !important;
+        }
+        
+        .bg-gray-100 {
+            background-color: var(--message-assistant-bg) !important;
+        }
+        
         /* Mobile header fixes */
         @media (max-width: 768px) {
             .mobile-header {
@@ -256,18 +333,29 @@
             
             /* Fix messages container spacing for mobile header */
             .messages-container {
-                padding-top: 1rem !important;
+                padding-top: 1.5rem !important;
                 padding-bottom: 1rem !important;
             }
             
             /* Add extra top padding to first message on mobile */
             .messages-container > div:first-child {
-                padding-top: 0.75rem;
+                padding-top: 1rem;
             }
             
             /* Ensure proper spacing for mobile header */
             .mobile-messages-wrapper {
-                padding-top: 0.5rem;
+                padding-top: 0.75rem;
+            }
+            
+            /* Additional spacing for first message on mobile */
+            .mobile-messages-wrapper .max-w-xs:first-child,
+            .mobile-messages-wrapper .max-w-sm:first-child,
+            .mobile-messages-wrapper .max-w-md:first-child,
+            .mobile-messages-wrapper .max-w-lg:first-child,
+            .mobile-messages-wrapper .max-w-xl:first-child,
+            .mobile-messages-wrapper .max-w-2xl:first-child,
+            .mobile-messages-wrapper .max-w-3xl:first-child {
+                margin-top: 0.5rem;
             }
         }
     </style>
@@ -538,7 +626,7 @@
             );
         };
 
-        const Sidebar = ({ conversations, currentConversationId, onSelectConversation, onNewConversation, isMobileMenuOpen, setIsMobileMenuOpen, user, onLogout, formatTimestamp }) => {
+        const Sidebar = ({ conversations, currentConversationId, onSelectConversation, onNewConversation, isMobileMenuOpen, setIsMobileMenuOpen, user, onLogout, formatTimestamp, isDarkMode, toggleDarkMode }) => {
             const [isCollapsed, setIsCollapsed] = useState(false);
             const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -677,6 +765,16 @@
                                                         <i className="fas fa-cog mr-2"></i>
                                                         Settings
                                                     </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setShowUserMenu(false);
+                                                            toggleDarkMode();
+                                                        }}
+                                                        className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                                                    >
+                                                        <i className={`fas ${isDarkMode ? 'fa-sun' : 'fa-moon'} mr-2`}></i>
+                                                        {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+                                                    </button>
                                                     <div className="border-t border-gray-700 my-1"></div>
                                                     <button
                                                         onClick={() => {
@@ -723,6 +821,7 @@
             const [conversationsLoading, setConversationsLoading] = useState(false);
             const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
             const [isMobile, setIsMobile] = useState(false);
+            const [isDarkMode, setIsDarkMode] = useState(false);
             const messagesEndRef = useRef(null);
 
             const currentConversation = conversations.find(c => c.id === currentConversationId);
@@ -840,6 +939,13 @@
                 setIsAuthenticated(false);
                 setConversations([]);
                 setCurrentConversationId(null);
+            };
+
+            const toggleDarkMode = () => {
+                const newTheme = isDarkMode ? 'light' : 'dark';
+                setIsDarkMode(!isDarkMode);
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
             };
 
             // Conversation management functions
@@ -972,6 +1078,37 @@
             const scrollToBottom = () => {
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
             };
+
+            // Dark mode initialization
+            useEffect(() => {
+                const initializeDarkMode = () => {
+                    // Check localStorage first
+                    const savedTheme = localStorage.getItem('theme');
+                    if (savedTheme) {
+                        setIsDarkMode(savedTheme === 'dark');
+                        document.documentElement.setAttribute('data-theme', savedTheme);
+                    } else {
+                        // Check system preference
+                        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                        setIsDarkMode(prefersDark);
+                        document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+                    }
+                };
+                
+                initializeDarkMode();
+                
+                // Listen for system theme changes
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                const handleChange = (e) => {
+                    if (!localStorage.getItem('theme')) {
+                        setIsDarkMode(e.matches);
+                        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+                    }
+                };
+                
+                mediaQuery.addEventListener('change', handleChange);
+                return () => mediaQuery.removeEventListener('change', handleChange);
+            }, []);
 
             // Mobile detection
             useEffect(() => {
@@ -1205,44 +1342,11 @@
                 );
             }
 
-            // Show login screen if not authenticated
+            // Redirect to auth page if not authenticated
             if (!isAuthenticated) {
-                return (
-                    <div className="h-screen flex items-center justify-center bg-gray-50">
-                        <div className="text-center max-w-md mx-auto p-6">
-                            <div className="w-16 h-16 mx-auto mb-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                <img 
-                                    src="/static/icc_logo.svg" 
-                                    alt="ICC Logo" 
-                                    className="w-10 h-10 object-contain"
-                                    onError={(e) => {
-                                        e.target.style.display = 'none';
-                                        e.target.nextSibling.style.display = 'flex';
-                                    }}
-                                />
-                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center" style={{display: 'none'}}>
-                                    <i className="fas fa-gavel text-blue-500 text-lg"></i>
-                                </div>
-                            </div>
-                            <h1 className="text-2xl font-bold text-gray-800 mb-2">ICC Legal Research Assistant</h1>
-                            <p className="text-gray-600 mb-6">Please sign in to access the legal research tool</p>
-                            <div className="space-y-3">
-                                <a
-                                    href="/auth.html"
-                                    className="block w-full bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors"
-                                >
-                                    Sign In / Sign Up
-                                </a>
-                                <button
-                                    onClick={() => window.location.reload()}
-                                    className="block w-full bg-gray-200 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors"
-                                >
-                                    Retry
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                );
+                // Redirect immediately to auth page
+                window.location.href = '/auth.html';
+                return null;
             }
 
             return (
@@ -1258,6 +1362,8 @@
                         user={user}
                         onLogout={logout}
                         formatTimestamp={formatTimestamp}
+                        isDarkMode={isDarkMode}
+                        toggleDarkMode={toggleDarkMode}
                     />
 
                     {/* Main Chat Area */}
@@ -1304,6 +1410,14 @@
                                         </p>
                                         <p className="text-xs text-gray-500">Logged in</p>
                                     </div>
+                                    {/* Dark Mode Toggle */}
+                                    <button
+                                        onClick={toggleDarkMode}
+                                        className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                                        title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                                    >
+                                        <i className={`fas ${isDarkMode ? 'fa-sun' : 'fa-moon'}`}></i>
+                                    </button>
                                     {/* Logout Button */}
                                     <button
                                         onClick={logout}
@@ -1334,7 +1448,7 @@
                                 <div className={`flex-1 overflow-y-auto py-4 sm:py-6 lg:py-8 messages-container mobile-messages-wrapper ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
                                     <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl mx-auto px-3 sm:px-4">
                                         {/* Mobile header spacer */}
-                                        <div className="block sm:hidden h-4"></div>
+                                        <div className="block sm:hidden h-6"></div>
                                         {messages.map((message) => (
                                             <ChatMessage
                                                 key={message.id}
