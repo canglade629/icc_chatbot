@@ -35,7 +35,9 @@ WORKDIR /app
 COPY main.py .
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
-COPY config/ ./config/
+
+# Create config directory (firebase-credentials excluded by .dockerignore)
+RUN mkdir -p config
 
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash app && chown -R app:app /app
