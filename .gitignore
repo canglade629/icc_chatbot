@@ -129,7 +129,7 @@ docker-compose.override.yml
 docker-compose.local.yml
 
 # Cloud Run and deployment
-.gcloudignore
+!gcloudignore
 cloudbuild.yaml
 cloudbuild_*.yaml
 app.yaml
