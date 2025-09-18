@@ -1189,7 +1189,15 @@
                         <div className="bg-white border-b px-3 sm:px-4 py-2 sm:py-3 shadow-sm">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2 sm:space-x-3">
-                                    <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
+                                    <div 
+                                        className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center cursor-pointer hover:bg-gray-100 rounded-lg transition-colors"
+                                        onClick={() => {
+                                            if (conversations.length > 0) {
+                                                selectConversation(conversations[0].id);
+                                            }
+                                        }}
+                                        title="Go to latest conversation"
+                                    >
                                         <img 
                                             src="/static/icc_logo.svg" 
                                             alt="ICC Logo" 
