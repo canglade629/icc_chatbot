@@ -303,14 +303,14 @@
         /* Input styling with rounded borders */
         .chat-textarea {
             background-color: var(--input-bg) !important;
-            border-color: var(--input-border) !important;
+            border: none !important;
             color: var(--input-text) !important;
             border-radius: 20px !important;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         
         .chat-textarea:focus {
-            border-color: var(--input-border) !important;
+            border: none !important;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
         }
         
@@ -413,7 +413,7 @@
                         <div className="flex justify-end mb-6 sm:mb-8">
                             <div className="max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl">
                                 <div className="user-message p-3 sm:p-4 inline-block">
-                                    <p className="text-sm sm:text-base lg:text-lg leading-relaxed">{text}</p>
+                                    <p className="text-xs sm:text-sm lg:text-base leading-relaxed">{text}</p>
                                 </div>
                             </div>
                         </div>
@@ -426,7 +426,7 @@
                         <div className="flex justify-start mb-6 sm:mb-8">
                             <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl">
                                 <div 
-                                    className="markdown-content text-xs sm:text-xs lg:text-sm leading-relaxed"
+                                    className="markdown-content text-sm leading-relaxed"
                                     dangerouslySetInnerHTML={{ __html: html }}
                                 />
                             </div>
@@ -437,7 +437,7 @@
                     return (
                         <div className="flex justify-start mb-6 sm:mb-8">
                             <div className="max-w-xs sm:max-w-2xl lg:max-w-3xl">
-                                <p className="text-xs sm:text-xs lg:text-sm leading-relaxed">{text}</p>
+                                <p className="text-sm leading-relaxed">{text}</p>
                             </div>
                         </div>
                     );
@@ -613,7 +613,7 @@
                                         onFocus={handleFocus}
                                         onBlur={handleBlur}
                                         placeholder="Search past judgments or ask about IHL provisions..."
-                                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${hasScroll ? 'pr-12 sm:pr-14' : 'pr-12 sm:pr-14'} border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base overflow-y-auto chat-textarea mobile-input ${hasScroll ? 'has-scroll' : ''} ${isKeyboardOpen ? 'keyboard-open' : ''}`}
+                                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${hasScroll ? 'pr-12 sm:pr-14' : 'pr-12 sm:pr-14'} rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base overflow-y-auto chat-textarea mobile-input ${hasScroll ? 'has-scroll' : ''} ${isKeyboardOpen ? 'keyboard-open' : ''}`}
                                         rows="1"
                                         disabled={isLoading}
                                         style={{ 
@@ -651,7 +651,7 @@
                                     onFocus={handleFocus}
                                     onBlur={handleBlur}
                                     placeholder="Search past judgments or ask about IHL provisions..."
-                                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${hasScroll ? 'pr-12 sm:pr-14' : 'pr-12 sm:pr-14'} border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base overflow-y-auto chat-textarea mobile-input ${hasScroll ? 'has-scroll' : ''} ${isKeyboardOpen ? 'keyboard-open' : ''}`}
+                                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${hasScroll ? 'pr-12 sm:pr-14' : 'pr-12 sm:pr-14'} rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base overflow-y-auto chat-textarea mobile-input ${hasScroll ? 'has-scroll' : ''} ${isKeyboardOpen ? 'keyboard-open' : ''}`}
                                     rows="1"
                                     disabled={isLoading}
                                     style={{ 
