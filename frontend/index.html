@@ -10,6 +10,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Session Management -->
+    <script src="/js/session-manager.js"></script>
+    <script src="/js/session-timeout-warning.js"></script>
+    <script src="/js/session-status-indicator.js"></script>
     <style>
         .typing-dots {
             display: inline-block;
@@ -481,7 +485,7 @@
             );
         };
 
-        const ChatInput = ({ onSendMessage, isLoading, isCentered = false }) => {
+        const ChatInput = ({ onSendMessage, isLoading, isCentered = false, hasUserInteracted = false }) => {
             const [message, setMessage] = useState('');
             const [hasScroll, setHasScroll] = useState(false);
             const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
@@ -518,15 +522,20 @@
                 }
             }, [message]);
 
-            // Auto-focus the textarea when component mounts
+            // Auto-focus the textarea when component mounts (but not on mobile unless it's a new conversation)
             useEffect(() => {
                 if (textareaRef.current) {
-                    // Small delay to ensure the component is fully rendered
-                    setTimeout(() => {
-                        textareaRef.current.focus();
-                    }, 100);
+                    // Only auto-focus on desktop or if it's a new conversation (centered input) or user hasn't interacted
+                    const shouldAutoFocus = !isMobile || isCentered || !hasUserInteracted;
+                    
+                    if (shouldAutoFocus) {
+                        // Small delay to ensure the component is fully rendered
+                        setTimeout(() => {
+                            textareaRef.current.focus();
+                        }, 100);
+                    }
                 }
-            }, []);
+            }, [isMobile, isCentered, hasUserInteracted]);
 
             // Mobile detection
             useEffect(() => {
@@ -584,6 +593,13 @@
                 }
             };
 
+            const handleClick = () => {
+                // On mobile, allow manual focus when user taps the input
+                if (isMobile && textareaRef.current) {
+                    textareaRef.current.focus();
+                }
+            };
+
             useEffect(() => {
                 const textarea = textareaRef.current;
                 if (textarea) {
@@ -631,6 +647,7 @@
                                         onKeyPress={handleKeyPress}
                                         onFocus={handleFocus}
                                         onBlur={handleBlur}
+                                        onClick={handleClick}
                                         placeholder={isMobile ? "Ask about legal provisions..." : "Search past judgments or ask about IHL provisions..."}
                                         className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${hasScroll ? 'pr-12 sm:pr-14' : 'pr-12 sm:pr-14'} rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base overflow-y-auto chat-textarea mobile-input ${hasScroll ? 'has-scroll' : ''} ${isKeyboardOpen ? 'keyboard-open' : ''}`}
                                         rows="1"
@@ -669,6 +686,7 @@
                                     onKeyPress={handleKeyPress}
                                     onFocus={handleFocus}
                                     onBlur={handleBlur}
+                                    onClick={handleClick}
                                     placeholder={isMobile ? "Ask about legal provisions..." : "Search past judgments or ask about IHL provisions..."}
                                     className={`w-full px-3 sm:px-4 py-2 sm:py-3 ${hasScroll ? 'pr-12 sm:pr-14' : 'pr-12 sm:pr-14'} rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base overflow-y-auto chat-textarea mobile-input ${hasScroll ? 'has-scroll' : ''} ${isKeyboardOpen ? 'keyboard-open' : ''}`}
                                     rows="1"
@@ -925,6 +943,7 @@
             const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
             const [isMobile, setIsMobile] = useState(false);
             const [isDarkMode, setIsDarkMode] = useState(false);
+            const [hasUserInteracted, setHasUserInteracted] = useState(false);
             const messagesEndRef = useRef(null);
 
             const currentConversation = conversations.find(c => c.id === currentConversationId);
@@ -963,31 +982,52 @@
                 }
             };
 
-            // Authentication functions
+            // Authentication functions using session manager
             const checkAuth = async () => {
-                const token = localStorage.getItem('access_token');
-                const userData = localStorage.getItem('user');
-                
-                if (token && userData) {
-                    try {
-                        // Verify token with backend
-                        const response = await fetch('/auth/me', {
-                            headers: {
-                                'Authorization': `Bearer ${token}`
+                if (window.sessionManager) {
+                    // Check if user is authenticated using session manager
+                    if (window.sessionManager.isUserAuthenticated()) {
+                        const user = window.sessionManager.getCurrentUser();
+                        setUser(user);
+                        setIsAuthenticated(true);
+                    } else {
+                        // Try to restore session
+                        try {
+                            await window.sessionManager.refreshAccessToken();
+                            const user = window.sessionManager.getCurrentUser();
+                            if (user) {
+                                setUser(user);
+                                setIsAuthenticated(true);
                             }
-                        });
-                        
-                        if (response.ok) {
-                            const user = await response.json();
-                            setUser(user);
-                            setIsAuthenticated(true);
-                        } else {
-                            // Token invalid, try refresh
+                        } catch (error) {
+                            console.error('Session restoration failed:', error);
+                        }
+                    }
+                } else {
+                    // Fallback to old method if session manager not available
+                    const token = localStorage.getItem('access_token');
+                    const userData = localStorage.getItem('user');
+                    
+                    if (token && userData) {
+                        try {
+                            const response = await fetch('/auth/me', {
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                }
+                            });
+                            
+                            if (response.ok) {
+                                const user = await response.json();
+                                setUser(user);
+                                setIsAuthenticated(true);
+                            } else {
+                                // Token invalid, try refresh
+                                await refreshToken();
+                            }
+                        } catch (error) {
+                            console.error('Auth check failed:', error);
                             await refreshToken();
                         }
-                    } catch (error) {
-                        console.error('Auth check failed:', error);
-                        await refreshToken();
                     }
                 }
                 setAuthLoading(false);
@@ -1035,9 +1075,13 @@
             };
 
             const logout = () => {
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('refresh_token');
-                localStorage.removeItem('user');
+                if (window.sessionManager) {
+                    window.sessionManager.logout();
+                } else {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
+                    localStorage.removeItem('user');
+                }
                 setUser(null);
                 setIsAuthenticated(false);
                 setConversations([]);
@@ -1057,12 +1101,17 @@
                 
                 setConversationsLoading(true);
                 try {
-                    const token = localStorage.getItem('access_token');
-                    const response = await fetch('/conversations', {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
+                    let response;
+                    if (window.sessionManager) {
+                        response = await window.sessionManager.authenticatedRequest('/conversations');
+                    } else {
+                        const token = localStorage.getItem('access_token');
+                        response = await fetch('/conversations', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                    }
 
                     if (response.ok) {
                         const conversationsData = await response.json();
@@ -1071,12 +1120,19 @@
                         const emptyConversations = conversationsData.filter(conv => conv.messages.length === 0);
                         if (emptyConversations.length > 0) {
                             try {
-                                await fetch('/conversations/cleanup', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Authorization': `Bearer ${token}`
-                                    }
-                                });
+                                if (window.sessionManager) {
+                                    await window.sessionManager.authenticatedRequest('/conversations/cleanup', {
+                                        method: 'POST'
+                                    });
+                                } else {
+                                    const token = localStorage.getItem('access_token');
+                                    await fetch('/conversations/cleanup', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Authorization': `Bearer ${token}`
+                                        }
+                                    });
+                                }
                             } catch (error) {
                                 console.error('Error cleaning up empty conversations:', error);
                             }
@@ -1110,13 +1166,8 @@
                         });
                         setConversations(formattedConversations);
                         
-                        // Set the first conversation as current, or create one if none exist
-                        if (formattedConversations.length === 0) {
-                            await createNewConversation();
-                        } else {
-                            // Set the first conversation as current
-                            setCurrentConversationId(formattedConversations[0].id);
-                        }
+                        // Don't set any conversation as current by default - show new conversation UI
+                        // A conversation will be created when the user sends their first message
                     }
                 } catch (error) {
                     console.error('Error loading conversations:', error);
@@ -1129,15 +1180,26 @@
 
             const createNewConversation = async () => {
                 try {
-                    const token = localStorage.getItem('access_token');
-                    const response = await fetch('/conversations', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ title: "New Conversation" })
-                    });
+                    let response;
+                    if (window.sessionManager) {
+                        response = await window.sessionManager.authenticatedRequest('/conversations', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ title: "New Conversation" })
+                        });
+                    } else {
+                        const token = localStorage.getItem('access_token');
+                        response = await fetch('/conversations', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ title: "New Conversation" })
+                        });
+                    }
 
                     if (response.ok) {
                         const newConv = await response.json();
@@ -1164,15 +1226,25 @@
                 }
                 
                 try {
-                    const token = localStorage.getItem('access_token');
-                    await fetch(`/conversations/${conversationId}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ messages: messages })
-                    });
+                    if (window.sessionManager) {
+                        await window.sessionManager.authenticatedRequest(`/conversations/${conversationId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ messages: messages })
+                        });
+                    } else {
+                        const token = localStorage.getItem('access_token');
+                        await fetch(`/conversations/${conversationId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ messages: messages })
+                        });
+                    }
                 } catch (error) {
                     console.error('Error saving conversation:', error);
                 }
@@ -1251,6 +1323,31 @@
 
             useEffect(() => {
                 checkAuth();
+                
+                // Set up session event listeners
+                if (window.sessionManager) {
+                    window.sessionManager.on('sessionExpired', () => {
+                        setUser(null);
+                        setIsAuthenticated(false);
+                        setConversations([]);
+                        setCurrentConversationId(null);
+                        // Redirect to auth page
+                        window.location.href = '/auth.html';
+                    });
+                    
+                    window.sessionManager.on('logout', () => {
+                        setUser(null);
+                        setIsAuthenticated(false);
+                        setConversations([]);
+                        setCurrentConversationId(null);
+                    });
+                    
+                    window.sessionManager.on('tokenRefreshed', (data) => {
+                        if (data.user) {
+                            setUser(data.user);
+                        }
+                    });
+                }
             }, []);
 
             useEffect(() => {
@@ -1263,21 +1360,32 @@
                 scrollToBottom();
             }, [messages]);
 
-            // Auto-focus input when conversation changes
+            // Auto-focus input when conversation changes (but not on mobile after first response)
             useEffect(() => {
-                // Focus the input after a short delay when conversation changes
-                const timer = setTimeout(() => {
-                    const textarea = document.querySelector('.chat-textarea');
-                    if (textarea) {
-                        textarea.focus();
-                    }
-                }, 200);
+                // Only auto-focus on desktop or if it's a new conversation or user hasn't interacted yet
+                const shouldAutoFocus = !isMobile || !hasUserInteracted || (currentConversation && currentConversation.messages.length <= 1);
                 
-                return () => clearTimeout(timer);
-            }, [currentConversationId]);
+                if (shouldAutoFocus) {
+                    const timer = setTimeout(() => {
+                        const textarea = document.querySelector('.chat-textarea');
+                        if (textarea) {
+                            textarea.focus();
+                        }
+                    }, 200);
+                    
+                    return () => clearTimeout(timer);
+                }
+            }, [currentConversationId, isMobile, currentConversation, hasUserInteracted]);
 
             const sendMessage = async (messageText) => {
                 console.log('Sending message:', messageText);
+                setHasUserInteracted(true); // Mark that user has interacted
+                
+                // If no current conversation, create one first
+                if (!currentConversationId) {
+                    await createNewConversation();
+                }
+                
                 const userMessage = {
                     id: Date.now(),
                     text: messageText,
@@ -1304,15 +1412,25 @@
                         // Update title in Firestore asynchronously
                         (async () => {
                             try {
-                                const token = localStorage.getItem('access_token');
-                                await fetch(`/conversations/${currentConversationId}`, {
-                                    method: 'PUT',
-                                    headers: {
-                                        'Authorization': `Bearer ${token}`,
-                                        'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify({ title: newTitle })
-                                });
+                                if (window.sessionManager) {
+                                    await window.sessionManager.authenticatedRequest(`/conversations/${currentConversationId}`, {
+                                        method: 'PUT',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({ title: newTitle })
+                                    });
+                                } else {
+                                    const token = localStorage.getItem('access_token');
+                                    await fetch(`/conversations/${currentConversationId}`, {
+                                        method: 'PUT',
+                                        headers: {
+                                            'Authorization': `Bearer ${token}`,
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({ title: newTitle })
+                                    });
+                                }
                             } catch (error) {
                                 console.error('Error updating conversation title:', error);
                             }
@@ -1333,15 +1451,26 @@
                 setIsLoading(true);
 
                 try {
-                    const token = localStorage.getItem('access_token');
-                    const response = await fetch('/chat', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({ message: messageText }),
-                    });
+                    let response;
+                    if (window.sessionManager) {
+                        response = await window.sessionManager.authenticatedRequest('/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ message: messageText })
+                        });
+                    } else {
+                        const token = localStorage.getItem('access_token');
+                        response = await fetch('/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ message: messageText }),
+                        });
+                    }
 
                     if (!response.ok) {
                         if (response.status === 401) {
@@ -1427,13 +1556,17 @@
                     ));
                 } finally {
                     setIsLoading(false);
-                    // Auto-focus input after sending message
-                    setTimeout(() => {
-                        const textarea = document.querySelector('.chat-textarea');
-                        if (textarea) {
-                            textarea.focus();
-                        }
-                    }, 100);
+                    // Auto-focus input after sending message (but not on mobile after first response)
+                    const shouldAutoFocus = !isMobile || !hasUserInteracted || (currentConversation && currentConversation.messages.length <= 2);
+                    
+                    if (shouldAutoFocus) {
+                        setTimeout(() => {
+                            const textarea = document.querySelector('.chat-textarea');
+                            if (textarea) {
+                                textarea.focus();
+                            }
+                        }, 100);
+                    }
                 }
             };
 
@@ -1443,7 +1576,7 @@
 
             const newConversation = async () => {
                 // Check if current conversation is empty or not started
-                if (!currentConversationId || (currentConversation && currentConversation.messages.length === 0)) {
+                if (currentConversationId && currentConversation && currentConversation.messages.length === 0) {
                     // Don't create a new conversation if current one is empty or not started
                     console.log('Current conversation is empty or not started, not creating new one');
                     return;
@@ -1591,12 +1724,12 @@
 
                                 {/* Input */}
                                 <div className={`chat-input-container ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
-                                    <ChatInput onSendMessage={sendMessage} isLoading={isLoading} />
+                                    <ChatInput onSendMessage={sendMessage} isLoading={isLoading} hasUserInteracted={hasUserInteracted} />
                                 </div>
                             </>
                         ) : (
                             /* Centered Input for New Conversations */
-                            <ChatInput onSendMessage={sendMessage} isLoading={isLoading} isCentered={true} />
+                            <ChatInput onSendMessage={sendMessage} isLoading={isLoading} isCentered={true} hasUserInteracted={hasUserInteracted} />
                         )}
                     </div>
                 </div>

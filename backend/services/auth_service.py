@@ -10,7 +10,7 @@ load_dotenv()
 # JWT Configuration
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour instead of 30 minutes
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -54,7 +54,7 @@ class AuthService:
     def create_refresh_token(self, data: dict) -> str:
         """Create a refresh token (longer expiry)"""
         to_encode = data.copy()
-        expire = datetime.utcnow() + timedelta(days=7)  # 7 days for refresh token
+        expire = datetime.utcnow() + timedelta(days=30)  # 30 days for refresh token
         to_encode.update({"exp": expire, "type": "refresh"})
         encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
         return encoded_jwt

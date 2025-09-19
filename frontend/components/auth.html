@@ -9,6 +9,9 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Session Management -->
+    <script src="/js/session-manager.js"></script>
+    <script src="/js/session-timeout-warning.js"></script>
     <style>
         .gradient-bg {
             background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
@@ -357,10 +360,15 @@
                     const data = await response.json();
 
                     if (response.ok) {
-                        // Store tokens in localStorage
-                        localStorage.setItem('access_token', data.access_token);
-                        localStorage.setItem('refresh_token', data.refresh_token);
-                        localStorage.setItem('user', JSON.stringify(data.user));
+                        // Store tokens using session manager if available
+                        if (window.sessionManager) {
+                            window.sessionManager.setAuthData(data.access_token, data.refresh_token, data.user);
+                        } else {
+                            // Fallback to localStorage
+                            localStorage.setItem('access_token', data.access_token);
+                            localStorage.setItem('refresh_token', data.refresh_token);
+                            localStorage.setItem('user', JSON.stringify(data.user));
+                        }
 
                         // Redirect to main app
                         window.location.href = '/';
